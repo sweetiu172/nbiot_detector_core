@@ -1,19 +1,30 @@
-# nbiot_detector
-```java
-Jenkins.instance.pluginManager.plugins.each { plugin ->
-  println "- ${plugin.getShortName()}:${plugin.getVersion()}"
-}
-```
-```sh
-$ tree  ./nbiot_detector/ -L 4
-```
-```md
-./nbiot_detector/
+# nbiot_detector_core
+
+## 📕 Table Of Contents
+
+<!--ts-->
+
+- 🌟 [System Architecture](#️-system-architecture)
+- 📁 [Repository Structure](#-repository-structure)
+- 🚀 [Getting Started](#-getting-started)
+- 🔍 [How to Guide](#-how-to-guide)
+- 📌 [References](#-references)
+
+## 🌟 System Architecture
+<p align="center">
+<img src="./images/system-architecture.png" width=100% height=100%>
+
+<p align="center">
+    System Architecture
+</p>
+
+## 📁 Repository Structure
+```shell
+./nbiot_detector_core/
 ├── Dockerfile
 ├── Jenkinsfile
 ├── README.md
 ├── app
-│   ├── __init__.py
 │   ├── main.py
 │   ├── model_definition.py
 │   ├── requirements.txt
@@ -21,6 +32,7 @@ $ tree  ./nbiot_detector/ -L 4
 │       ├── best_nbiot_detector.pth
 │       └── nbiot_multi_device_scaler.gz
 ├── docker-compose.yaml
+├── example.csv
 ├── kubernetes
 │   ├── Dockerfile.jenkins
 │   ├── Dockerfile.jenkins-agent
@@ -30,81 +42,15 @@ $ tree  ./nbiot_detector/ -L 4
 │   │   └── jenkins-helm-role-and-role-binding.yaml
 │   └── helm
 │       ├── app-nbiot-detector
-│       │   ├── Chart.yaml
-│       │   ├── charts
-│       │   ├── templates
-│       │   └── values.yaml
 │       ├── elasticsearch
-│       │   ├── Chart.yaml
-│       │   ├── Makefile
-│       │   ├── README.md
-│       │   ├── examples
-│       │   ├── templates
-│       │   └── values.yaml
 │       ├── filebeat
-│       │   ├── Chart.yaml
-│       │   ├── Makefile
-│       │   ├── README.md
-│       │   ├── examples
-│       │   ├── templates
-│       │   └── values.yaml
 │       ├── ingress-nginx
-│       │   ├── Chart.yaml
-│       │   ├── OWNERS
-│       │   ├── README.md
-│       │   ├── README.md.gotmpl
-│       │   ├── changelog
-│       │   ├── ci
-│       │   ├── templates
-│       │   ├── tests
-│       │   └── values.yaml
+│       ├── jaeger-all-in-one
 │       ├── jenkins
-│       │   ├── CHANGELOG.md
-│       │   ├── Chart.yaml
-│       │   ├── README.md
-│       │   ├── UPGRADING.md
-│       │   ├── VALUES.md
-│       │   ├── VALUES.md.gotmpl
-│       │   ├── jenkins-values.yaml
-│       │   ├── templates
-│       │   └── values.yaml
+│       ├── kibana
 │       └── kube-prometheus-stack
-│           ├── Chart.lock
-│           ├── Chart.yaml
-│           ├── README.md
-│           ├── charts
-│           ├── templates
-│           └── values.yaml
 ├── local
-│   ├── alertmanager
-│   │   └── data
-│   ├── elk
-│   │   ├── elasticsearch
-│   │   │   ├── Dockerfile
-│   │   │   └── config
-│   │   ├── extensions
-│   │   │   ├── README.md
-│   │   │   └── filebeat
-│   │   ├── kibana
-│   │   │   ├── Dockerfile
-│   │   │   └── config
-│   │   ├── run_env
-│   │   └── setup
-│   │       ├── Dockerfile
-│   │       ├── entrypoint.sh
-│   │       ├── helpers.sh
-│   │       └── roles
-│   ├── grafana
-│   │   ├── config
-│   │   │   ├── dashboards.yaml
-│   │   │   └── datasources.yaml
-│   │   └── dashboards
-│   │       └── 1860_rev31.json
-│   ├── prometheus
-│   │   └── config
-│   │       ├── alert-rules.yml
-│   │       └── prometheus.yml
-│   └── setup.yaml
+├── main.ipynb
 ├── pytest.ini
 ├── scripts
 │   ├── bootstrap.sh
@@ -113,10 +59,8 @@ $ tree  ./nbiot_detector/ -L 4
 │   ├── main.tf
 │   ├── mlops.tfvars
 │   ├── outputs.tf
-│   ├── terraform.tfstate
-│   ├── terraform.tfstate.backup
 │   └── variables.tf
 └── tests
-    ├── __init__.py
+    ├── __init__.pyc
     └── test_main.py
 ```
