@@ -48,14 +48,15 @@
 │       ├── kibana
 │       └── kube-prometheus-stack
 ├── local
-├── main.ipynb
 ├── pytest.ini
+├── notebooks
+│   ├── main.ipynb
 ├── scripts
 │   ├── bootstrap.sh
 │   └── cleanup.sh
 ├── terraform
 │   ├── main.tf
-│   ├── mlops.tfvars
+│   ├── prod.tfvars
 │   ├── outputs.tf
 │   └── variables.tf
 └── tests
