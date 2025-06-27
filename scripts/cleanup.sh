@@ -6,11 +6,11 @@
 # --- Configuration ---
 # Paths are relative to the ./scripts/ directory where this script is located
 TERRAFORM_DIR="../terraform"
-TF_VARS_FILE="mlops.tfvars" # Expected inside TERRAFORM_DIR
+TF_VARS_FILE="prod.tfvars" # Expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Namespaces to delete (excluding 'default' as it's a system namespace)
-K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing")
+K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing", "nbiot-detector")
 
 # Mapping of namespaces to Helm releases.
 # Release names should match those used in deploy.sh (typically chart directory names)
@@ -20,7 +20,7 @@ HELM_RELEASES_MAP["jenkins"]="jenkins"
 HELM_RELEASES_MAP["monitoring"]="kube-prometheus-stack"
 HELM_RELEASES_MAP["logging"]="kibana elasticsearch filebeat"
 HELM_RELEASES_MAP["tracing"]="jaeger-all-in-one"
-HELM_RELEASES_MAP["default"]="app-nbiot-detector"
+HELM_RELEASES_MAP["nbiot-detector"]="app-nbiot-detector"
 
 # --- Helper Functions ---
 log_info() {
@@ -77,7 +77,7 @@ delete_base_kubernetes_manifests() {
   # Adjusted to use ingress.yaml as per your new structure
   local ingress_file="$K8S_BASE_MANIFESTS_DIR/ingress.yaml"
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
-  local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-helm-role-and-role-binding.yaml"
+  local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
 
   if [ -f "$ingress_file" ]; then
     log_info "Deleting resources defined in $ingress_file..."

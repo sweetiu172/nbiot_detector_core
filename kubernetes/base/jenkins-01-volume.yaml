@@ -12,7 +12,6 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: /data/jenkins-volume/
-
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass

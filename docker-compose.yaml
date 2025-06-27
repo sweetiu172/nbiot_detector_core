@@ -12,7 +12,7 @@ services:
   #   restart: unless-stopped
 
   nbiot_api_service:
-    image: minhtuan172/nbiot-detector-app 
+    image: minhtuan172/nbiot-detector-app:3
     container_name: nbiot_api_container 
     ports:
       - "8000:8000"
@@ -38,6 +38,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.3.1
     container_name: node-exporter
+    restart: unless-stopped
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -124,7 +125,6 @@ services:
       - "4318:4318"
       - "16686:16686"
 
-
   setup:
     build:
       context: local/elk/setup/
@@ -174,7 +174,6 @@ services:
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-}
     depends_on:
       - elasticsearch
-
 
 volumes:
   setup:

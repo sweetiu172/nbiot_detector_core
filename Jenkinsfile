@@ -35,7 +35,6 @@ pipeline {
                     echo "Activating virtual environment"
                     . venv/bin/activate 
                     echo "Installing packages into virtual environment"
-                    pip install --no-cache-dir --upgrade pip
                     pip install --no-cache-dir -r requirements.txt
                     pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
                     echo "Running tests"
@@ -157,11 +156,6 @@ pipeline {
                         sh "helm status ${helmReleaseName} -n ${APP_NAMESPACE} || echo 'helm status command failed (may be due to connection issue).'"
                         error("Deployment failed and rollback attempted for ${helmReleaseName}.")
                     }
-                }
-            }
-            post {
-                always {
-                    echo "Cleaning up deployment step..."
                 }
             }
         }

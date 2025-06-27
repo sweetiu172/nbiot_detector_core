@@ -85,7 +85,7 @@ class PredictionResponse(BaseModel):
 # Otherwise: @trace.get_tracer(__name__).start_as_current_span(...)
 
 @trace.get_tracer(__name__).start_as_current_span("preprocess_single_features")
-def _preprocess_single(features_list: List[float]) -> torch.Tensor:
+def preprocess_single(features_list: List[float]) -> torch.Tensor:
     current_span = trace.get_current_span()
     logger.info(f"Preprocessing {len(features_list)} features for single prediction.")
     current_span.set_attribute("num_input_features", len(features_list))
@@ -103,7 +103,7 @@ def _preprocess_single(features_list: List[float]) -> torch.Tensor:
         raise
 
 @trace.get_tracer(__name__).start_as_current_span("run_single_inference")
-def _run_single_inference(features_tensor: torch.Tensor) -> Dict[str, float]:
+def run_single_inference(features_tensor: torch.Tensor) -> Optional[dict[str, float]]:
     current_span = trace.get_current_span()
     logger.info("Running single inference.")
     try:
@@ -154,18 +154,18 @@ async def lifespan(app_instance: FastAPI):
 
     logger.info(f"Lifespan: Loading scaler from {SCALER_PATH}")
     if not os.path.exists(SCALER_PATH):
-        logger.critical(f"CRITICAL: Scaler file not found at {SCALER_PATH}")
+        logger.error(f"CRITICAL: Scaler file not found at {SCALER_PATH}")
         raise RuntimeError(f"Scaler file not found at {SCALER_PATH}")
     try:
         scaler = joblib.load(SCALER_PATH)
         logger.info("Lifespan: Scaler loaded successfully.")
     except Exception as e:
-        logger.critical("Lifespan: CRITICAL Error loading scaler.", exc_info=True)
+        logger.error("Lifespan: CRITICAL Error loading scaler.", exc_info=True)
         raise RuntimeError(f"Error loading scaler: {e}")
 
     logger.info(f"Lifespan: Loading model from {MODEL_PATH}")
     if not os.path.exists(MODEL_PATH):
-        logger.critical(f"CRITICAL: Model file not found at {MODEL_PATH}")
+        logger.error(f"CRITICAL: Model file not found at {MODEL_PATH}")
         raise RuntimeError(f"Model file not found at {MODEL_PATH}")
     try:
         model = MLPDetector(INPUT_SIZE, HIDDEN_SIZE_1, HIDDEN_SIZE_2, OUTPUT_SIZE, DROPOUT_RATE)
@@ -174,7 +174,7 @@ async def lifespan(app_instance: FastAPI):
         model.eval()
         logger.info("Lifespan: PyTorch model loaded and set to evaluation mode.")
     except Exception as e:
-        logger.critical("Lifespan: CRITICAL Error loading PyTorch model.", exc_info=True)
+        logger.error("Lifespan: CRITICAL Error loading PyTorch model.", exc_info=True)
         raise RuntimeError(f"Error loading PyTorch model: {e}")
     
     logger.info("Lifespan: Startup tasks completed successfully.")
@@ -210,8 +210,8 @@ async def read_root():
     logger.info("Root endpoint '/' accessed.")
     return {"message": "N-BaIoT Botnet Detector API. Navigate to /docs for API documentation."}
 
-@app.post("/predict/", response_model=PredictionResponse, summary="Predict Single Instance")
-async def predict_single_instance(data: NetworkFeaturesInput):
+@app.post("/predict", response_model=PredictionResponse, summary="Predict Single Instance")
+def predict_single_instance(data: NetworkFeaturesInput):
     logger.info(f"Received single prediction request with {len(data.features)} features.")
     # FastAPIInstrumentor creates a span for the endpoint. Get it to add attributes.
     current_endpoint_span = trace.get_current_span()
@@ -228,10 +228,10 @@ async def predict_single_instance(data: NetworkFeaturesInput):
 
     try:
         # Call helper function for preprocessing (this will create its own span)
-        features_tensor = _preprocess_single(data.features)
+        features_tensor = preprocess_single(data.features)
         
         # Call helper function for inference (this will create its own span)
-        inference_result = _run_single_inference(features_tensor)
+        inference_result = run_single_inference(features_tensor)
         probability_attack = inference_result["probability_attack"]
             
         prediction_label = 1 if probability_attack > 0.5 else 0
@@ -244,7 +244,7 @@ async def predict_single_instance(data: NetworkFeaturesInput):
             status=status_message,
             probability_attack=probability_attack
         )
-    except ValueError as ve: # Example: if np.array or scaler.transform raises ValueError not caught by _preprocess_single
+    except ValueError as ve: # Example: if np.array or scaler.transform raises ValueError not caught by preprocess_single
         logger.warning(f"ValueError in single prediction endpoint: {str(ve)}", exc_info=True)
         current_endpoint_span.set_status(Status(StatusCode.ERROR, description=str(ve)))
         current_endpoint_span.record_exception(ve)
@@ -255,7 +255,7 @@ async def predict_single_instance(data: NetworkFeaturesInput):
         current_endpoint_span.record_exception(e)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred during prediction: {str(e)}")
 
-@app.post("/predict_batch/", response_model=List[PredictionResponse], summary="Predict Batch from CSV File")
+@app.post("/predict_batch", response_model=List[PredictionResponse], summary="Predict Batch from CSV File")
 async def predict_batch_from_csv(file: UploadFile = File(..., description="CSV file containing rows of 115 features per instance. No header row.")):
     logger.info(f"Received batch prediction request for file: {file.filename}")
     current_endpoint_span = trace.get_current_span() # Get span from FastAPIInstrumentor

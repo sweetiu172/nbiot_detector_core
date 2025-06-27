@@ -7,11 +7,11 @@ set -e
 # Paths are relative to the scripts directory if run from there
 HELM_CHARTS_DIR="../kubernetes/helm"
 TERRAFORM_DIR="../terraform"
-TF_VARS_FILE="mlops.tfvars" # This file is expected inside TERRAFORM_DIR
+TF_VARS_FILE="prod.tfvars" # This file is expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Define your specific namespaces
-K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "default")
+K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "nbiot-detector")
 
 # --- Helper Functions ---
 log_info() {
@@ -126,7 +126,7 @@ apply_base_kubernetes_manifests() {
   log_info "--- Applying Kubernetes Base Manifests from $K8S_BASE_MANIFESTS_DIR ---"
 
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
-  local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-helm-role-and-role-binding.yaml"
+  local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
   local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/ingress.yaml"
   local processed_ingress_file="/tmp/processed-ingress.yaml"
 
@@ -174,7 +174,7 @@ print_service_passwords() {
       log_info "Access App Nbiot Detector at: http://app.$external_ip_for_url.nip.io (if Ingress was successful)"
       log_info "Access Jaeger UI at: http://jaeger.$external_ip_for_url.nip.io (if Ingress was successful)"
   else
-      log_info "Run at local: kubectl port-forward svc/app-nbiot-detector 8000:8000"
+      log_info "Run at local: kubectl --namespace nbiot-detector port-forward svc/app-nbiot-detector 8000:8000"
       log_info "Run at local: kubectl --namespace tracing port-forward svc/jaeger-all-in-one 16686:16686"
   fi
   echo >&2

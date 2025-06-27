@@ -20,9 +20,8 @@ ENV PATH="/opt/venv_builder/bin:$PATH"
 COPY ./app/requirements.txt /opt/venv_builder/requirements.txt
 
 # Install Python dependencies into the virtual environment
-# Upgrade pip first. Use --no-cache-dir to reduce layer size.
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
+# Use --no-cache-dir to reduce layer size.
+RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # ---- Stage 2: Runtime ----
