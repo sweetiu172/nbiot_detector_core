@@ -1299,6 +1299,20 @@ agent:
             resourceRequestMemory: "512Mi"
             resourceLimitCpu: "1"
             resourceLimitMemory: "1024Mi"
+      - name: git
+        label: git-agent
+        serviceAccount: jenkins-agent-sa
+        containers:
+          - name: git
+            image: alpine/git:v2.49.0
+            command: "/bin/sh -c"
+            args: "cat"
+            ttyEnabled: true
+            privileged: true
+            resourceRequestCpu: "256m"
+            resourceRequestMemory: "512Mi"
+            resourceLimitCpu: "1"
+            resourceLimitMemory: "1024Mi"
       - name: docker
         label: docker-build-environment
         serviceAccount: jenkins-agent-sa

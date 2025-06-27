@@ -11,7 +11,7 @@ TF_VARS_FILE="prod.tfvars" # This file is expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Define your specific namespaces
-K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "nbiot-detector")
+K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "nbiot-detector" "argocd")
 
 # --- Helper Functions ---
 log_info() {
@@ -46,6 +46,15 @@ deploy_chart() {
   local values_file="$chart_path/values.yaml"
   if [ "$ENVIRONMENT" == "prod" ] && [ "$target_namespace" == "jenkins" ]; then
     values_file="$chart_path/values.prod.yaml"
+  fi
+  if [ "$target_namespace" == "argocd" ]; then
+    values_file="$chart_path/values.extended.yaml"
+  fi
+  if [ "$chart_dir_name" == "kibana" ] && [ "$target_namespace" == "logging" ]; then
+    values_file="$chart_path/values.extended.yaml"
+  fi
+  if [ "$chart_dir_name" == "elasticsearch" ] && [ "$target_namespace" == "logging" ]; then
+    values_file="$chart_path/values.extended.yaml"
   fi
   local helm_args=()
 
@@ -127,6 +136,7 @@ apply_base_kubernetes_manifests() {
 
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
   local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
+  local argocd_deployment="$K8S_BASE_MANIFESTS_DIR/argocd.yaml"
   local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/ingress.yaml"
   local processed_ingress_file="/tmp/processed-ingress.yaml"
 
@@ -142,6 +152,13 @@ apply_base_kubernetes_manifests() {
     kubectl apply -f "$jenkins_role_binding_file"
   else
     log_warning "$jenkins_role_binding_file not found. Skipping."
+  fi
+
+  if [ -f "$argocd_deployment" ]; then
+    log_info "Applying $argocd_deployment to 'nbiot-detector' namespace..."
+    kubectl apply -f "$argocd_deployment"
+  else
+    log_warning "$argocd_deployment not found. Skipping."
   fi
 
   if [ -z "$external_ip" ]; then
@@ -255,6 +272,27 @@ print_service_passwords() {
     log_info "  Tried secrets like '$es_secret_name_official' (key: elastic) and '$es_secret_name_bitnami' (key: password)."
     log_info "  Elasticsearch chart defaults or secret names may vary."
   fi
+
+  # ArgoCD
+  local argocd_release_name="argocd"
+  local argocd_namespace="argocd"
+  local argocd_secret_name_official="${argocd_release_name}-initial-admin-secret"
+  log_info "Attempting to retrieve ArgoCD 'admin' user password..."
+
+  local argocd_password=""
+  argocd_password=$(kubectl -n $argocd_namespace get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode 2>/dev/null || echo "")
+  
+  if [[ -n "$argocd_password" ]]; then
+    log_info "Elasticsearch User: admin"
+    log_info "Elasticsearch Password: $argocd_password"
+    if [[ -n "$external_ip_for_url" ]]; then
+        log_info "Access Kibana at: http://argocd.$external_ip_for_url.nip.io (if Ingress was successful)"
+    else
+        log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
+    fi
+  else
+    log_warning "Could not retrieve ArgoCD 'admin' user password."
+  fi
   log_info "----------------------------------" # End of credentials section
 }
 
@@ -332,10 +370,18 @@ deploy_chart "ingress-nginx" "ingress-nginx"
 deploy_chart "jenkins" "jenkins"
 deploy_chart "kube-prometheus-stack" "monitoring"
 deploy_chart "elasticsearch" "logging"
+
+log_info "Waiting 5 minutes for elastic search to be ready"
+ kubectl delete pod elasticsearch-master-0  -n logging || log_warning "Failed to restart elasticsearch-master from 'logging' namespace."
+sleep "300" # wait for elastic search to be ready
+
 deploy_chart "filebeat" "logging"
+
+kubectl delete secret -n logging kibana-kibana-es-token || log_warning "Failed to delete kibana-kibana-es-token from 'logging' namespace."
+
 deploy_chart "kibana" "logging"
 deploy_chart "jaeger-all-in-one" "tracing"
-deploy_chart "app-nbiot-detector" "default"
+deploy_chart "argo-cd" "argocd"
 log_info "Helm chart deployment process complete."
 echo >&2 # Blank line to stderr for readability
 

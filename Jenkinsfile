@@ -17,10 +17,14 @@ pipeline {
         helmValuesFile = "${helmChartPath}/values.yaml"
         // Kubernetes namespace (optional, defaults to 'default' if not specified in kubeconfig or command)
         kubernetesNamespace = 'default'
+
+        appConfigRepo = 'git@github.com:sweetiu172/nbiot_detector_core.git'
+        appConfigBranch = 'feat/init-project'
     }
 
     stages {
         stage('Test') {
+            when { changeset "app/*"}
             agent {
                 kubernetes {
                     label 'python-test-environment'
@@ -46,6 +50,7 @@ pipeline {
             }
         }
         stage('Build') {
+            when { changeset "app/*"}
             agent {
                 kubernetes {
                     label 'docker-build-environment'
@@ -56,6 +61,7 @@ pipeline {
                 echo "--- Build Stage: Entering steps ---"
                 script {
                     // Attempt to pull the latest image for caching, but don't fail if it doesn't exist
+                    sh 'cd app'
                     try {
                         sh "docker pull ${registry}:latest || true"
                     } catch (Exception e) {
@@ -74,90 +80,133 @@ pipeline {
                 }
             }
         }
-        stage('Deploy') {
-             agent {
+        stage('Update value in helm-chart') {
+            when { changeset "app/*"}
+            agent {
                 kubernetes {
-                    label 'k8s-deploy-agent'
-                    defaultContainer 'tools' // this container have kubectl and helm
+                    label 'git-agent'
+                    defaultContainer 'git'
                 }
             }
             environment {
-                KUBE_DEPLOYMENT_NAME = "${env.helmReleaseName}"
-                APP_NAMESPACE = "${env.kubernetesNamespace}"
+                APP_CONFIG_REPO = "${env.appConfigRepo}"
+                APP_CONFIG_BRANCH = "${env.appConfigBranch}"
+                BUILD_NUMBER = $BUILD_NUMBER
             }
             steps {
-                script {
-                    echo "--- KUBERNETES ENVIRONMENT DIAGNOSTICS ---"
-                    sh 'echo "Attempting to unset KUBECONFIG to ensure in-cluster config is used."'
-                    sh 'unset KUBECONFIG || true'
-                    sh 'echo "--- Relevant KUBE environment variables ---"'
-                    sh 'env | grep KUBE || echo "No KUBE* env vars found"'
-                    sh 'echo "--- Service Account Token (if present) ---"'
-                    sh 'ls -l /var/run/secrets/kubernetes.io/serviceaccount/ || echo "Service account directory not found or not listable"'
-                    sh 'echo "--- Current kubectl config view ---"'
-                    sh "kubectl config view"
-                    echo "------------------------------------------"
+                withCredentials([sshUserPrivateKey(credentialsId: 'github-ssh-key', keyFileVariable: 'GIT_SSH_KEY', usernameVariable: 'GIT_USERNAME')]) {
+                    script {
+                        // Jenkins automatically uses the key file for authentication with git.
+                        // We must add GitHub's host key to the known_hosts file to avoid interactive prompts.
+                        sh 'mkdir -p ~/.ssh'
+                        sh 'ssh-keyscan github.com >> ~/.ssh/known_hosts'
 
-                    echo "Deploying ${helmReleaseName} to namespace ${APP_NAMESPACE} using Helm chart from ${helmChartPath}..."
-                    echo "Image to be deployed: ${registry}:${env.BUILD_NUMBER}"
+                        // Configure git user details
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "Jenkins CI SVC"'
 
-                    try {
-                        sh "helm lint ${helmChartPath}"
+                        // Clone using the SSH URL format
+                        // The GIT_USERNAME variable will be populated from the secret if defined, but 'git' is standard for GitHub SSH
+                        sh 'git clone ${APP_CONFIG_REPO} --branch ${APP_CONFIG_BRANCH}'
+                        sh 'cd app'
 
-                        // Helm upgrade command
-                        sh """
-                            helm upgrade --install ${helmReleaseName} ${helmChartPath} \
-                                -n ${APP_NAMESPACE} \
-                                -f ${helmValuesFile} \
-                                --set image.repository=${registry} \
-                                --set image.tag=${env.BUILD_NUMBER} \
-                                --atomic \
-                                --timeout 10m \
-                                --wait \
-                                --debug
-                        """
+                        dir('nbiot_detector_core/app') {
+                            // Make a change to the repository
+                            sh 'sed -i 's|  tag: .*|  tag: "${env.BUILD_NUMBER}"|' values.yaml'
+                            sh 'git add .'
+                            sh 'git commit -m "Chore: Update to version ${env.BUILD_NUMBER}"'
 
-                        echo "Helm upgrade of ${helmReleaseName} in namespace ${APP_NAMESPACE} initiated successfully."
-                        echo "Waiting for rollout to complete for deployment/${KUBE_DEPLOYMENT_NAME} in namespace ${APP_NAMESPACE}..."
-
-                        sh "kubectl rollout status deployment/${KUBE_DEPLOYMENT_NAME} -n ${APP_NAMESPACE} --timeout=5m"
-                        echo "Deployment ${KUBE_DEPLOYMENT_NAME} successfully rolled out in namespace ${APP_NAMESPACE}."
-
-                        echo "Running application-specific health checks (if any)..."
-                        // Example: sh "./run-my-health-checks.sh ${APP_NAMESPACE} ${helmReleaseName}"
-
-                        timeout(time: 15, unit: 'MINUTES') {
-                            def userInput = input(
-                                id: 'confirmDeployment',
-                                message: "Deployment of ${helmReleaseName} (Image: ${registry}:${env.BUILD_NUMBER}) in namespace ${APP_NAMESPACE} seems successful. Proceed or Rollback?",
-                                parameters: [
-                                    [$class: 'ChoiceParameterDefinition', choices: 'Proceed\nRollback', name: 'ACTION']
-                                ]
-                            )
-                            if (userInput == 'Rollback') {
-                                echo "Manual rollback initiated for ${helmReleaseName} in namespace ${APP_NAMESPACE}."
-                                sh "helm rollback ${helmReleaseName} 0 -n ${APP_NAMESPACE}" // 0 rolls back to previous revision
-                                currentBuild.result = 'ABORTED' // Mark build as aborted due to manual rollback
-                                error("Deployment manually rolled back by user.")
-                            } else {
-                                echo "Deployment confirmed by user."
-                            }
+                            // Push the changes back to the repository
+                            sh 'git push origin ${APP_CONFIG_BRANCH}'
                         }
-
-                    } catch (err) {
-                        echo "Deployment failed for ${helmReleaseName} in namespace ${APP_NAMESPACE}. Error: ${err.getMessage()}"
-                        if (err.getMessage().contains("localhost:8080") || err.getMessage().contains("connection refused")) {
-                            echo "CRITICAL ERROR: Agent is still trying to connect to localhost:8080. This means it's NOT correctly using the in-cluster Kubernetes configuration. Check Jenkins agent setup (Kubernetes plugin, pod templates) to ensure this stage runs as a pod *inside* your Minikube cluster."
-                        }
-                        echo "Attempting automatic rollback..."
-                        // These helm commands will also fail if the connection issue persists
-                        sh "helm history ${helmReleaseName} -n ${APP_NAMESPACE} || echo 'helm history command failed (may be due to connection issue).'"
-                        sh "helm rollback ${helmReleaseName} 0 -n ${APP_NAMESPACE} || echo 'Rollback to previous revision failed or no previous revision found (may be due to connection issue).'"
-                        sh "helm status ${helmReleaseName} -n ${APP_NAMESPACE} || echo 'helm status command failed (may be due to connection issue).'"
-                        error("Deployment failed and rollback attempted for ${helmReleaseName}.")
                     }
                 }
             }
         }
+        // stage('Deploy') {
+        //      agent {
+        //         kubernetes {
+        //             label 'k8s-deploy-agent'
+        //             defaultContainer 'tools' // this container have kubectl and helm
+        //         }
+        //     }
+        //     environment {
+        //         KUBE_DEPLOYMENT_NAME = "${env.helmReleaseName}"
+        //         APP_NAMESPACE = "${env.kubernetesNamespace}"
+        //     }
+        //     steps {
+        //         script {
+        //             echo "--- KUBERNETES ENVIRONMENT DIAGNOSTICS ---"
+        //             sh 'echo "Attempting to unset KUBECONFIG to ensure in-cluster config is used."'
+        //             sh 'unset KUBECONFIG || true'
+        //             sh 'echo "--- Relevant KUBE environment variables ---"'
+        //             sh 'env | grep KUBE || echo "No KUBE* env vars found"'
+        //             sh 'echo "--- Service Account Token (if present) ---"'
+        //             sh 'ls -l /var/run/secrets/kubernetes.io/serviceaccount/ || echo "Service account directory not found or not listable"'
+        //             sh 'echo "--- Current kubectl config view ---"'
+        //             sh "kubectl config view"
+        //             echo "------------------------------------------"
+
+        //             echo "Deploying ${helmReleaseName} to namespace ${APP_NAMESPACE} using Helm chart from ${helmChartPath}..."
+        //             echo "Image to be deployed: ${registry}:${env.BUILD_NUMBER}"
+
+        //             try {
+        //                 sh "helm lint ${helmChartPath}"
+
+        //                 // Helm upgrade command
+        //                 sh """
+        //                     helm upgrade --install ${helmReleaseName} ${helmChartPath} \
+        //                         -n ${APP_NAMESPACE} \
+        //                         -f ${helmValuesFile} \
+        //                         --set image.repository=${registry} \
+        //                         --set image.tag=${env.BUILD_NUMBER} \
+        //                         --atomic \
+        //                         --timeout 10m \
+        //                         --wait \
+        //                         --debug
+        //                 """
+
+        //                 echo "Helm upgrade of ${helmReleaseName} in namespace ${APP_NAMESPACE} initiated successfully."
+        //                 echo "Waiting for rollout to complete for deployment/${KUBE_DEPLOYMENT_NAME} in namespace ${APP_NAMESPACE}..."
+
+        //                 sh "kubectl rollout status deployment/${KUBE_DEPLOYMENT_NAME} -n ${APP_NAMESPACE} --timeout=5m"
+        //                 echo "Deployment ${KUBE_DEPLOYMENT_NAME} successfully rolled out in namespace ${APP_NAMESPACE}."
+
+        //                 echo "Running application-specific health checks (if any)..."
+        //                 // Example: sh "./run-my-health-checks.sh ${APP_NAMESPACE} ${helmReleaseName}"
+
+        //                 timeout(time: 15, unit: 'MINUTES') {
+        //                     def userInput = input(
+        //                         id: 'confirmDeployment',
+        //                         message: "Deployment of ${helmReleaseName} (Image: ${registry}:${env.BUILD_NUMBER}) in namespace ${APP_NAMESPACE} seems successful. Proceed or Rollback?",
+        //                         parameters: [
+        //                             [$class: 'ChoiceParameterDefinition', choices: 'Proceed\nRollback', name: 'ACTION']
+        //                         ]
+        //                     )
+        //                     if (userInput == 'Rollback') {
+        //                         echo "Manual rollback initiated for ${helmReleaseName} in namespace ${APP_NAMESPACE}."
+        //                         sh "helm rollback ${helmReleaseName} 0 -n ${APP_NAMESPACE}" // 0 rolls back to previous revision
+        //                         currentBuild.result = 'ABORTED' // Mark build as aborted due to manual rollback
+        //                         error("Deployment manually rolled back by user.")
+        //                     } else {
+        //                         echo "Deployment confirmed by user."
+        //                     }
+        //                 }
+
+        //             } catch (err) {
+        //                 echo "Deployment failed for ${helmReleaseName} in namespace ${APP_NAMESPACE}. Error: ${err.getMessage()}"
+        //                 if (err.getMessage().contains("localhost:8080") || err.getMessage().contains("connection refused")) {
+        //                     echo "CRITICAL ERROR: Agent is still trying to connect to localhost:8080. This means it's NOT correctly using the in-cluster Kubernetes configuration. Check Jenkins agent setup (Kubernetes plugin, pod templates) to ensure this stage runs as a pod *inside* your Minikube cluster."
+        //                 }
+        //                 echo "Attempting automatic rollback..."
+        //                 // These helm commands will also fail if the connection issue persists
+        //                 sh "helm history ${helmReleaseName} -n ${APP_NAMESPACE} || echo 'helm history command failed (may be due to connection issue).'"
+        //                 sh "helm rollback ${helmReleaseName} 0 -n ${APP_NAMESPACE} || echo 'Rollback to previous revision failed or no previous revision found (may be due to connection issue).'"
+        //                 sh "helm status ${helmReleaseName} -n ${APP_NAMESPACE} || echo 'helm status command failed (may be due to connection issue).'"
+        //                 error("Deployment failed and rollback attempted for ${helmReleaseName}.")
+        //             }
+        //         }
+        //     }
+        // }
     }
 }

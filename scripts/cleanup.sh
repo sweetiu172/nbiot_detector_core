@@ -10,7 +10,7 @@ TF_VARS_FILE="prod.tfvars" # Expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Namespaces to delete (excluding 'default' as it's a system namespace)
-K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing", "nbiot-detector")
+K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "argocd" "nbiot-detector")
 
 # Mapping of namespaces to Helm releases.
 # Release names should match those used in deploy.sh (typically chart directory names)
@@ -20,6 +20,7 @@ HELM_RELEASES_MAP["jenkins"]="jenkins"
 HELM_RELEASES_MAP["monitoring"]="kube-prometheus-stack"
 HELM_RELEASES_MAP["logging"]="kibana elasticsearch filebeat"
 HELM_RELEASES_MAP["tracing"]="jaeger-all-in-one"
+HELM_RELEASES_MAP["argocd"]="argo-cd"
 HELM_RELEASES_MAP["nbiot-detector"]="app-nbiot-detector"
 
 # --- Helper Functions ---
@@ -76,6 +77,7 @@ delete_base_kubernetes_manifests() {
 
   # Adjusted to use ingress.yaml as per your new structure
   local ingress_file="$K8S_BASE_MANIFESTS_DIR/ingress.yaml"
+  local argocd_deployment="$K8S_BASE_MANIFESTS_DIR/argocd.yaml"
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
   local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
 
@@ -91,6 +93,13 @@ delete_base_kubernetes_manifests() {
     kubectl delete -f "$jenkins_volume_file" --ignore-not-found=true || log_warning "Failed to delete $jenkins_volume_file from 'jenkins' namespace."
   else
     log_warning "$jenkins_volume_file not found. Skipping its deletion."
+  fi
+
+  if [ -f "$argocd_deployment" ]; then
+    log_info "Applying $argocd_deployment to 'nbiot-detector' namespace..."
+    kubectl delete -f "$argocd_deployment" || log_warning "Failed to delete $argocd_deployment from 'nbiot-detector' namespace."
+  else
+    log_warning "$argocd_deployment not found. Skipping its deletion."
   fi
 
   if [ -f "$jenkins_role_binding_file" ]; then

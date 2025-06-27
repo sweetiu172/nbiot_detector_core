@@ -1,0 +1,117 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  namespace: nbiot-detector
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: nbiot-detector-app-nbiot-detector
+                port:
+                  number: 8000
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: jenkins.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: jenkins
+                port:
+                  number: 8080
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: grafana.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-stack-grafana
+                port:
+                  number: 80
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger
+  namespace: tracing
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: jaeger.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: jaeger-all-in-one
+                port:
+                  number: 16686
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kibana.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: kibana-kibana
+                port:
+                  number: 5601
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+      # kubernetes.io/ingress.global-static-ip-name: argocd-ingress-ip
+      # networking.gke.io/managed-certificates: argocd-example-cert
+      # networking.gke.io/v1beta1.FrontendConfig: argocd-frontend-config
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.34.124.128.74.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: argo-cd-server
+                port:
+                  number: 80
+            path: /

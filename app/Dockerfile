@@ -17,7 +17,7 @@ RUN python -m venv .
 ENV PATH="/opt/venv_builder/bin:$PATH"
 
 # Copy requirements.txt
-COPY ./app/requirements.txt /opt/venv_builder/requirements.txt
+COPY ./requirements.txt /opt/venv_builder/requirements.txt
 
 # Install Python dependencies into the virtual environment
 # Use --no-cache-dir to reduce layer size.
@@ -46,7 +46,7 @@ COPY --from=builder /opt/venv_builder /opt/venv
 
 # Copy the application code
 # This copies your local './app' directory to '/app_code/app' in the image
-COPY ./app /app_code/app
+COPY . /app_code/app
 
 # Set the working directory to where main.py is, for simpler CMD execution
 WORKDIR /app_code

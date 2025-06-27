@@ -12,7 +12,7 @@ spec:
           - pathType: Prefix
             backend:
               service:
-                name: app-nbiot-detector
+                name: nbiot-detector-app-nbiot-detector
                 port:
                   number: 8000
             path: /
@@ -91,4 +91,23 @@ spec:
                 name: kibana-kibana
                 port:
                   number: 5601
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.$EXTERNAL_IP.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: argo-cd-server
+                port:
+                  number: 443
             path: /
