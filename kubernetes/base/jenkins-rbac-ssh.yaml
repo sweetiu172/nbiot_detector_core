@@ -28,9 +28,17 @@ roleRef:
   kind: Role
   name: jenkins-ssh-key-reader
   apiGroup: rbac.authorization.k8s.io
+---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: github-ssh-key
+#   namespace: jenkins
+# type: Opaque
+# data:
+#   id_rsa: <BASE64_ENCODED_PRIVATE_KEY>
 
 ## MUST CREATE A SECRET
 # kubectl create secret generic github-ssh-key \
-#     --namespace=jenkins \
-#     --type=kubernetes.io/ssh-auth \
-#     --from-file=ssh-privatekey=./id_rsa_jenkins
+#   --from-file=id_rsa=id_rsa_jenkins \
+#   --namespace=jenkins

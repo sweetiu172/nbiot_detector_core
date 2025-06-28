@@ -274,7 +274,7 @@ print_service_passwords() {
   fi
 
   # ArgoCD
-  local argocd_release_name="argocd"
+  local argocd_release_name="argo-cd"
   local argocd_namespace="argocd"
   local argocd_secret_name_official="${argocd_release_name}-initial-admin-secret"
   log_info "Attempting to retrieve ArgoCD 'admin' user password..."
@@ -283,10 +283,10 @@ print_service_passwords() {
   argocd_password=$(kubectl -n $argocd_namespace get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode 2>/dev/null || echo "")
   
   if [[ -n "$argocd_password" ]]; then
-    log_info "Elasticsearch User: admin"
-    log_info "Elasticsearch Password: $argocd_password"
+    log_info "ArgoCD User: admin"
+    log_info "ArgoCD Password: $argocd_password"
     if [[ -n "$external_ip_for_url" ]]; then
-        log_info "Access Kibana at: http://argocd.$external_ip_for_url.nip.io (if Ingress was successful)"
+        log_info "Access ArgoCD at: http://argocd.$external_ip_for_url.nip.io (if Ingress was successful)"
     else
         log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
     fi

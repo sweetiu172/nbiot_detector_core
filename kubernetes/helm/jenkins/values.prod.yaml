@@ -454,6 +454,7 @@ controller:
   - metrics:4.2.30-471.v55fa_495f2b_f5
   - mina-sshd-api-common:2.15.0-161.vb_200831a_c15b_
   - mina-sshd-api-core:2.15.0-161.vb_200831a_c15b_
+  - multibranch-scan-webhook-trigger:1.0.11
   - okhttp-api:4.11.0-189.v976fa_d3379d6
   - pipeline-build-step:567.vea_ce550ece97
   - pipeline-graph-analysis:237.v2b_75640ca_888
@@ -1301,7 +1302,7 @@ agent:
             resourceLimitMemory: "1024Mi"
       - name: git
         label: git-agent
-        serviceAccount: jenkins-agent-sa
+        serviceAccount: jenkins-ssh-sa
         containers:
           - name: git
             image: alpine/git:v2.49.0
@@ -1313,6 +1314,12 @@ agent:
             resourceRequestMemory: "512Mi"
             resourceLimitCpu: "1"
             resourceLimitMemory: "1024Mi"
+        volumes:
+        - secretVolume:
+            mountPath: '/home/jenkins/.ssh'
+            defaultMode: '0400'
+            optional: false
+            secretName: 'github-ssh-key'
       - name: docker
         label: docker-build-environment
         serviceAccount: jenkins-agent-sa

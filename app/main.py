@@ -62,7 +62,6 @@ device: torch.device = None
 tracer: trace.Tracer = None
 otel_sdk_logger_provider: OtelSDKLoggerProvider = None
 
-
 # --- Pydantic Models ---
 class NetworkFeaturesInput(BaseModel):
     features: List[float]
@@ -103,7 +102,7 @@ def preprocess_single(features_list: List[float]) -> torch.Tensor:
         raise
 
 @trace.get_tracer(__name__).start_as_current_span("run_single_inference")
-def run_single_inference(features_tensor: torch.Tensor) -> Optional[dict[str, float]]:
+def run_single_inference(features_tensor: torch.Tensor) -> dict[str, float]:
     current_span = trace.get_current_span()
     logger.info("Running single inference.")
     try:
@@ -188,7 +187,6 @@ async def lifespan(app_instance: FastAPI):
         logger.info("Shutting down OpenTelemetry logger provider.")
         otel_sdk_logger_provider.shutdown()
     logger.info("Lifespan: Shutdown complete.")
-
 
 # Initialize FastAPI app with the lifespan manager
 app = FastAPI(

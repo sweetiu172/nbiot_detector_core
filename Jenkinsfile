@@ -9,8 +9,9 @@ pipeline {
     }
 
     environment{
-        registry = 'minhtuan172/nbiot-detector-app'
-        registryCredential = 'docker'
+        DOCKER_IMAGE_NAME = 'minhtuan172/nbiot-detector-app'
+        DOCKER_CREDENTIAL_ID = 'docker-jenkins'
+
         // Helm chart details
         helmChartPath = './kubernetes/helm/app-nbiot-detector' // Path to your chart directory
         helmReleaseName = 'app-nbiot-detector'
@@ -20,11 +21,19 @@ pipeline {
 
         appConfigRepo = 'git@github.com:sweetiu172/nbiot_detector_core.git'
         appConfigBranch = 'feat/init-project'
+
+        gitCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        dockerTag = "${env.BUILD_NUMBER}-${gitCommit}"
     }
 
     stages {
         stage('Test') {
-            when { changeset "app/*"}
+            when {
+                anyOf {
+                    changeset "app/**"
+                    changeset "Jenkinsfile"
+                }
+            }
             agent {
                 kubernetes {
                     label 'python-test-environment'
@@ -50,7 +59,12 @@ pipeline {
             }
         }
         stage('Build') {
-            when { changeset "app/*"}
+            when {
+                anyOf {
+                    changeset "app/**"
+                    changeset "Jenkinsfile"
+                }
+            }
             agent {
                 kubernetes {
                     label 'docker-build-environment'
@@ -59,29 +73,29 @@ pipeline {
             }
             steps {
                 echo "--- Build Stage: Entering steps ---"
-                script {
-                    // Attempt to pull the latest image for caching, but don't fail if it doesn't exist
-                    sh 'cd app'
-                    try {
-                        sh "docker pull ${registry}:latest || true"
-                    } catch (Exception e) {
-                        echo "Could not pull latest image for cache, proceeding without it. Error: ${e.getMessage()}"
-                    }
+                dir('app') {
+                    script {
+                        def dockerImage = docker.build("${env.DOCKER_IMAGE_NAME}:${env.dockerTag}", "--cache-from ${env.DOCKER_IMAGE_NAME}:latest .")
 
-                    echo 'Building image for deployment..'
-                    // Add --cache-from to the docker.build command
-                    dockerImage = docker.build registry + ":$BUILD_NUMBER", "--cache-from ${registry}:latest ."
+                        // Use the full registry URL and credentials for pushing
+                        docker.withRegistry( '', env.DOCKER_CREDENTIAL_ID) {
+                            echo "Pushing image ${dockerImage.id} to registry..."
+                            dockerImage.push()
 
-                    echo 'Pushing image to dockerhub..'
-                    docker.withRegistry( '', registryCredential ) {
-                        dockerImage.push()
-                        dockerImage.push('latest')
+                            echo "Tagging and pushing as 'latest'..."
+                            dockerImage.push('latest')
+                        }
                     }
                 }
             }
         }
         stage('Update value in helm-chart') {
-            when { changeset "app/*"}
+            when {
+                anyOf {
+                    changeset "app/**"
+                    changeset "Jenkinsfile"
+                }
+            }
             agent {
                 kubernetes {
                     label 'git-agent'
@@ -91,35 +105,38 @@ pipeline {
             environment {
                 APP_CONFIG_REPO = "${env.appConfigRepo}"
                 APP_CONFIG_BRANCH = "${env.appConfigBranch}"
-                BUILD_NUMBER = $BUILD_NUMBER
             }
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'github-ssh-key', keyFileVariable: 'GIT_SSH_KEY', usernameVariable: 'GIT_USERNAME')]) {
-                    script {
-                        // Jenkins automatically uses the key file for authentication with git.
-                        // We must add GitHub's host key to the known_hosts file to avoid interactive prompts.
-                        sh 'mkdir -p ~/.ssh'
-                        sh 'ssh-keyscan github.com >> ~/.ssh/known_hosts'
+                script {
+                    // Jenkins automatically uses the key file for authentication with git.
+                    // We must add GitHub's host key to the known_hosts file to avoid interactive prompts.
+                    sh """
+                        #!/bin/bash
+                        set -e
 
-                        // Configure git user details
-                        sh 'git config --global user.email "jenkins@example.com"'
-                        sh 'git config --global user.name "Jenkins CI SVC"'
+                        echo "Setting up SSH..."
+                        mkdir -p ~/.ssh
+                        cp -a /home/jenkins/.ssh/.  ~/.ssh
+                        chmod 600 ~/.ssh/id_rsa
+                        ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-                        // Clone using the SSH URL format
-                        // The GIT_USERNAME variable will be populated from the secret if defined, but 'git' is standard for GitHub SSH
-                        sh 'git clone ${APP_CONFIG_REPO} --branch ${APP_CONFIG_BRANCH}'
-                        sh 'cd app'
+                        echo "Configuring Git..."
+                        git config --global user.email "jenkins@example.com"
+                        git config --global user.name "Jenkins CI SA"
 
-                        dir('nbiot_detector_core/app') {
-                            // Make a change to the repository
-                            sh 'sed -i 's|  tag: .*|  tag: "${env.BUILD_NUMBER}"|' values.yaml'
-                            sh 'git add .'
-                            sh 'git commit -m "Chore: Update to version ${env.BUILD_NUMBER}"'
+                        echo "Cloning repo..."
+                        git clone ${APP_CONFIG_REPO} --branch ${APP_CONFIG_BRANCH}
+                        cd ./nbiot_detector_core
 
-                            // Push the changes back to the repository
-                            sh 'git push origin ${APP_CONFIG_BRANCH}'
-                        }
-                    }
+                        echo "Modifying Helm values.yaml..."
+                        sed -i "s/^  tag:.*/  tag: \\\"${env.dockerTag}\\\"/" ${helmValuesFile}
+                        cat ${helmValuesFile}
+
+                        echo "Committing and pushing changes..."
+                        git add . 
+                        git commit -m "Chore: Update to version ${env.dockerTag}"
+                        git push origin ${APP_CONFIG_BRANCH}
+                    """
                 }
             }
         }
