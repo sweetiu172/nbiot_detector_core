@@ -134,7 +134,7 @@ pipeline {
 
                         echo "Committing and pushing changes..."
                         git add . 
-                        git commit -m "Chore: Update to version ${env.dockerTag}"
+                        git commit -m "CD: Update to version ${env.dockerTag}"
                         git push origin ${APP_CONFIG_BRANCH}
                     """
                 }
