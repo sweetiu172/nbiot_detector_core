@@ -217,7 +217,7 @@ elif [ "$ENVIRONMENT" == "prod" ]; then
   log_warning "Review the plan carefully when prompted by Terraform (unless -auto-approve is used)."
   
   # For safety, -auto-approve is not used by default. User will be prompted by Terraform.
-  if terraform destroy -var-file="$TF_VARS_FILE"; then
+  if terraform destroy -var-file="$TF_VARS_FILE" -auto-approve; then
     log_info "Terraform destroy completed successfully."
   else
     log_error "Terraform destroy failed. Please check the output and your GCP console."
