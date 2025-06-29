@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: app
+  name: app-google-dns
   namespace: nbiot-detector
 spec:
   ingressClassName: nginx
   rules:
-    - host: app.tuan-lnm.org # FIX HERE
+    - host: app.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix
@@ -20,12 +20,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: jenkins
+  name: jenkins-google-dns
   namespace: jenkins
 spec:
   ingressClassName: nginx
   rules:
-    - host: jenkins.tuan-lnm.org # FIX HERE
+    - host: jenkins.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix
@@ -39,18 +39,18 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: grafana
+  name: grafana-google-dns
   namespace: monitoring
 spec:
   ingressClassName: nginx
   rules:
-    - host: grafana.tuan-lnm.org # FIX HERE
+    - host: grafana.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix
             backend:
               service:
-                name: kube-prometheus-stack-new-grafana
+                name: kube-prometheus-stack-grafana
                 port:
                   number: 80
             path: /
@@ -58,12 +58,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: jaeger
+  name: jaeger-google-dns
   namespace: tracing
 spec:
   ingressClassName: nginx
   rules:
-    - host: jaeger.tuan-lnm.org # FIX HERE
+    - host: jaeger.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix
@@ -77,12 +77,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: kibana
+  name: kibana-google-dns
   namespace: logging
 spec:
   ingressClassName: nginx
   rules:
-    - host: kibana.tuan-lnm.org # FIX HERE
+    - host: kibana.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix
@@ -96,12 +96,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: argocd
+  name: argocd-google-dns
   namespace: argocd
 spec:
   ingressClassName: nginx
   rules:
-    - host: argocd.tuan-lnm.org # FIX HERE
+    - host: argocd.tuan-lnm.cloud # FIX HERE
       http:
         paths:
           - pathType: Prefix

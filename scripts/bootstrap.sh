@@ -163,6 +163,10 @@ apply_argocd_kubernetes_manifests() {
     # Loop through all .yaml files in the directory
     for manifest_file in "$argocd_manifests_dir"/*.yaml; do
       if [ -f "$manifest_file" ]; then
+        if [ "$manifest_file" == "elasticsearch.yaml" ]; then
+          log_info "Wait 5 minutes for elasticsearch to be"
+          sleep 300
+        fi
         log_info "Applying $(basename "$manifest_file")..."
         kubectl apply -f "$manifest_file"
       fi

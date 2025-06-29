@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kube-prometheus-stack
+  name: kube-prometheus-stack-v2
   namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
@@ -11,7 +13,7 @@ spec:
     path: './kubernetes/helm/kube-prometheus-stack'
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: monitoring
+    namespace: monitoring-v2
   syncPolicy:
     automated:
       prune: true
