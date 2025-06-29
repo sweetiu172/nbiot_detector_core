@@ -1,0 +1,113 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  namespace: nbiot-detector
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: app.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: nbiot-detector-app-nbiot-detector
+                port:
+                  number: 8000
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: jenkins.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: jenkins
+                port:
+                  number: 8080
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: grafana.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-stack-grafana
+                port:
+                  number: 80
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger
+  namespace: tracing
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: jaeger.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: jaeger-jaeger-all-in-one
+                port:
+                  number: 16686
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kibana.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: kibana-kibana
+                port:
+                  number: 5601
+            path: /
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.tuan-lnm.org # FIX HERE
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: argo-cd-server
+                port:
+                  number: 443
+            path: /

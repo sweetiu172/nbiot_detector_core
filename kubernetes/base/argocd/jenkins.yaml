@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jenkins
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/sweetiu172/nbiot_detector_core.git'
+    targetRevision: feat/init-project
+    path: './kubernetes/helm/jenkins'
+    helm:
+      valueFiles:
+      - values.prod.yaml
+      - values.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: jenkins
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -10,7 +10,7 @@ TF_VARS_FILE="prod.tfvars" # Expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Namespaces to delete (excluding 'default' as it's a system namespace)
-K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "argocd" "nbiot-detector")
+K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "argocd" "nbiot-detector" "cloudflare")
 
 # Mapping of namespaces to Helm releases.
 # Release names should match those used in deploy.sh (typically chart directory names)
@@ -211,7 +211,7 @@ elif [ "$ENVIRONMENT" == "prod" ]; then
   log_info "Current directory: $(pwd)"
   log_info "Initializing Terraform (required before destroy if .terraform directory is missing)..."
   # For destroy, init without -upgrade is usually fine, but -upgrade doesn't hurt.
-  terraform init -upgrade || log_warning "Terraform init failed. If already initialized, destroy might still work."
+  terraform init || log_warning "Terraform init failed. If already initialized, destroy might still work."
 
   log_info "Running 'terraform destroy'. This will remove ALL infrastructure defined in your Terraform configuration."
   log_warning "Review the plan carefully when prompted by Terraform (unless -auto-approve is used)."

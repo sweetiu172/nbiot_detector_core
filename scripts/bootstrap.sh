@@ -11,7 +11,7 @@ TF_VARS_FILE="prod.tfvars" # This file is expected inside TERRAFORM_DIR
 K8S_BASE_MANIFESTS_DIR="../kubernetes/base"
 
 # Define your specific namespaces
-K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "nbiot-detector" "argocd")
+K8S_NAMESPACES_LIST=("ingress-nginx" "jenkins" "monitoring" "logging" "tracing" "nbiot-detector" "argocd" "cloudflared")
 
 # --- Helper Functions ---
 log_info() {
@@ -44,16 +44,7 @@ deploy_chart() {
 
   log_info "Deploying Helm chart '$release_name' from '$chart_path' to namespace '$target_namespace'..."
   local values_file="$chart_path/values.yaml"
-  if [ "$ENVIRONMENT" == "prod" ] && [ "$target_namespace" == "jenkins" ]; then
-    values_file="$chart_path/values.prod.yaml"
-  fi
   if [ "$target_namespace" == "argocd" ]; then
-    values_file="$chart_path/values.extended.yaml"
-  fi
-  if [ "$chart_dir_name" == "kibana" ] && [ "$target_namespace" == "logging" ]; then
-    values_file="$chart_path/values.extended.yaml"
-  fi
-  if [ "$chart_dir_name" == "elasticsearch" ] && [ "$target_namespace" == "logging" ]; then
     values_file="$chart_path/values.extended.yaml"
   fi
   local helm_args=()
@@ -130,15 +121,11 @@ print_ingress_dns_names() {
 
 # Function to apply manifests from ../kubernetes/base
 apply_base_kubernetes_manifests() {
-  local external_ip="$1"
-
   log_info "--- Applying Kubernetes Base Manifests from $K8S_BASE_MANIFESTS_DIR ---"
 
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
   local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
-  local argocd_deployment="$K8S_BASE_MANIFESTS_DIR/argocd.yaml"
-  local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/ingress.yaml"
-  local processed_ingress_file="/tmp/processed-ingress.yaml"
+  local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/cloudflare-ingress.yaml"
 
   if [ -f "$jenkins_volume_file" ]; then
     log_info "Applying $jenkins_volume_file to 'jenkins' namespace..."
@@ -154,42 +141,49 @@ apply_base_kubernetes_manifests() {
     log_warning "$jenkins_role_binding_file not found. Skipping."
   fi
 
-  if [ -f "$argocd_deployment" ]; then
-    log_info "Applying $argocd_deployment to 'nbiot-detector' namespace..."
-    kubectl apply -f "$argocd_deployment"
+  if [ -f "$ingress_template_file" ]; then
+    log_info "Applying $ingress_template_file"
+    kubectl apply -f "$ingress_template_file"
   else
-    log_warning "$argocd_deployment not found. Skipping."
-  fi
-
-  if [ -z "$external_ip" ]; then
-    log_warning "External IP for Ingress is missing. Skipping application of $ingress_template_file."
-  elif [ -f "$ingress_template_file" ];then
-    log_info "Processing $ingress_template_file with External IP: $external_ip..."
-    if awk -v ip_addr="$external_ip" '{gsub("\\$EXTERNAL_IP", ip_addr); print}' "$ingress_template_file" > "$processed_ingress_file"; then
-      log_info "Successfully processed $ingress_template_file to $processed_ingress_file"
-      log_info "Applying processed ingress rules from $processed_ingress_file..."
-      if kubectl apply -f "$processed_ingress_file"; then
-          print_ingress_dns_names "$processed_ingress_file" # Call DNS printer here
-      else
-          log_warning "Failed to apply processed ingress rules from $processed_ingress_file."
-      fi
-    else
-      log_error "Failed to process $ingress_template_file with awk command."
-    fi
-  else
-    log_warning "$ingress_template_file not found. Skipping."
+    log_warning "$jenkins_volume_file not found. Skipping."
   fi
 
   log_info "Base Kubernetes manifests application process complete."
 }
+
+apply_argocd_kubernetes_manifests() {
+  log_info "--- Applying Kubernetes Base Manifests from $K8S_BASE_MANIFESTS_DIR ---"
+
+  # Define directories and specific files
+  local argocd_manifests_dir="$K8S_BASE_MANIFESTS_DIR/argocd"
+
+  # --- Apply all manifests from the argocd directory ---
+  if [ -d "$argocd_manifests_dir" ]; then
+    log_info "Applying all manifests from $argocd_manifests_dir..."
+    # Loop through all .yaml files in the directory
+    for manifest_file in "$argocd_manifests_dir"/*.yaml; do
+      if [ -f "$manifest_file" ]; then
+        log_info "Applying $(basename "$manifest_file")..."
+        kubectl apply -f "$manifest_file"
+      fi
+    done
+  else
+    log_warning "Manifests directory not found: $argocd_manifests_dir. Skipping."
+  fi
+
+  log_info "ArgoCD Kubernetes manifests application process complete."
+}
+
 
 # Function to print default service passwords
 print_service_passwords() {
   log_info "--- Default Service Credentials (Passwords are typically stored in Kubernetes Secrets) ---"
   local external_ip_for_url="${1:-}" # Pass INGRESS_EXTERNAL_IP if available for URLs
   if [[ -n "$external_ip_for_url" ]]; then
-      log_info "Access App Nbiot Detector at: http://app.$external_ip_for_url.nip.io (if Ingress was successful)"
-      log_info "Access Jaeger UI at: http://jaeger.$external_ip_for_url.nip.io (if Ingress was successful)"
+      # log_info "Access App Nbiot Detector at: http://app.$external_ip_for_url.nip.io (if Ingress was successful)"
+      # log_info "Access Jaeger UI at: http://jaeger.$external_ip_for_url.nip.io (if Ingress was successful)"
+      log_info "Access App Nbiot Detector at: https://app.tuan-lnm.org (if Ingress was successful)"
+      log_info "Access Jaeger UI at: https://jaeger.tuan-lnm.org (if Ingress was successful)"
   else
       log_info "Run at local: kubectl --namespace nbiot-detector port-forward svc/app-nbiot-detector 8000:8000"
       log_info "Run at local: kubectl --namespace tracing port-forward svc/jaeger-all-in-one 16686:16686"
@@ -210,7 +204,8 @@ print_service_passwords() {
     log_info "Jenkins Admin User: $jenkins_username"
     log_info "Jenkins Admin Password: $jenkins_password"
     if [[ -n "$external_ip_for_url" ]]; then
-        log_info "Access Jenkins at: http://jenkins.$external_ip_for_url.nip.io (if Ingress was successful)"
+        # log_info "Access Jenkins at: http://jenkins.$external_ip_for_url.nip.io (if Ingress was successful)"
+        log_info "Access Jenkins at: https://jenkins.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl --namespace jenkins port-forward svc/jenkins 8080:8080"
     fi
@@ -231,7 +226,7 @@ print_service_passwords() {
     log_info "Grafana Admin User: admin"
     log_info "Grafana Admin Password: $grafana_password"
     if [[ -n "$external_ip_for_url" ]]; then
-        log_info "Access Grafana at: http://grafana.$external_ip_for_url.nip.io (if Ingress was successful)"
+        log_info "Access Grafana at: https://grafana.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
     fi
@@ -263,7 +258,7 @@ print_service_passwords() {
     log_info "Elasticsearch User: elastic"
     log_info "Elasticsearch Password: $es_password"
     if [[ -n "$external_ip_for_url" ]]; then
-        log_info "Access Kibana at: http://kibana.$external_ip_for_url.nip.io (if Ingress was successful)"
+        log_info "Access Kibana at: https://kibana.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl port-forward svc/kibana-kibana -n logging 5601:5601"
     fi
@@ -280,13 +275,14 @@ print_service_passwords() {
   log_info "Attempting to retrieve ArgoCD 'admin' user password..."
 
   local argocd_password=""
+  # kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
   argocd_password=$(kubectl -n $argocd_namespace get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 --decode 2>/dev/null || echo "")
   
   if [[ -n "$argocd_password" ]]; then
     log_info "ArgoCD User: admin"
     log_info "ArgoCD Password: $argocd_password"
     if [[ -n "$external_ip_for_url" ]]; then
-        log_info "Access ArgoCD at: http://argocd.$external_ip_for_url.nip.io (if Ingress was successful)"
+        log_info "Access ArgoCD at: https://argocd.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
     fi
@@ -325,7 +321,7 @@ elif [ "$ENVIRONMENT" == "prod" ]; then
   cd "$TERRAFORM_DIR"
 
   log_info "Initializing Terraform..."
-  terraform init
+  terraform init -upgrade
 
   log_info "Applying Terraform configuration (this may take a while)..."
   terraform apply -var-file="$TF_VARS_FILE" -auto-approve
@@ -366,27 +362,22 @@ log_info "Namespace creation step complete."
 echo >&2 # Blank line to stderr for readability
 
 log_info "Starting Helm chart deployments based on defined mapping..."
-deploy_chart "ingress-nginx" "ingress-nginx"
-deploy_chart "jenkins" "jenkins"
-deploy_chart "kube-prometheus-stack" "monitoring"
-deploy_chart "elasticsearch" "logging"
-
-log_info "Waiting 5 minutes for elastic search to be ready"
- kubectl delete pod elasticsearch-master-0  -n logging || log_warning "Failed to restart elasticsearch-master from 'logging' namespace."
-sleep "300" # wait for elastic search to be ready
-
-deploy_chart "filebeat" "logging"
-
-kubectl delete secret -n logging kibana-kibana-es-token || log_warning "Failed to delete kibana-kibana-es-token from 'logging' namespace."
-
-deploy_chart "kibana" "logging"
-deploy_chart "jaeger-all-in-one" "tracing"
 deploy_chart "argo-cd" "argocd"
+deploy_chart "cloudflare-tunnel-remote" "cloudflared"
 log_info "Helm chart deployment process complete."
 echo >&2 # Blank line to stderr for readability
 
-INGRESS_EXTERNAL_IP=""
 
+# Apply base Kubernetes manifests
+# apply_base_kubernetes_manifests will use the INGRESS_EXTERNAL_IP (which might be empty)
+apply_base_kubernetes_manifests
+echo >&2 # Blank line to stderr for readability
+
+# Apply ArgoCD helm chart
+apply_argocd_kubernetes_manifests
+echo >&2 # Blank line to stderr for readability
+
+INGRESS_EXTERNAL_IP=""
 
 set +e
 if [ "$ENVIRONMENT" == "prod" ]; then
@@ -399,11 +390,6 @@ if [ "$ENVIRONMENT" == "prod" ]; then
   echo >&2 # Blank line to stderr for readability
 fi
 set -e
-
-# Apply base Kubernetes manifests
-# apply_base_kubernetes_manifests will use the INGRESS_EXTERNAL_IP (which might be empty)
-apply_base_kubernetes_manifests "$INGRESS_EXTERNAL_IP"
-echo >&2 # Blank line to stderr for readability
 
 # Print service passwords at the end
 print_service_passwords "$INGRESS_EXTERNAL_IP"
