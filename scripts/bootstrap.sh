@@ -187,8 +187,8 @@ apply_argocd_kubernetes_manifests() {
 # Function to print default service passwords
 print_service_passwords() {
   log_info "--- Default Service Credentials (Passwords are typically stored in Kubernetes Secrets) ---"
-  local external_ip_for_url="${1:-}" # Pass INGRESS_EXTERNAL_IP if available for URLs
-  if [[ -n "$external_ip_for_url" ]]; then
+  # local external_ip_for_url="${1:-}" # Pass INGRESS_EXTERNAL_IP if available for URLs
+  if [ "$ENVIRONMENT" == "prod" ]; then
       # log_info "Access App Nbiot Detector at: http://app.$external_ip_for_url.nip.io (if Ingress was successful)"
       # log_info "Access Jaeger UI at: http://jaeger.$external_ip_for_url.nip.io (if Ingress was successful)"
       log_info "Access App Nbiot Detector at: https://app.tuan-lnm.org (if Ingress was successful)"
@@ -212,7 +212,7 @@ print_service_passwords() {
   if [[ -n "$jenkins_password" ]]; then
     log_info "Jenkins Admin User: $jenkins_username"
     log_info "Jenkins Admin Password: $jenkins_password"
-    if [[ -n "$external_ip_for_url" ]]; then
+    if [ "$ENVIRONMENT" == "prod" ]; then
         # log_info "Access Jenkins at: http://jenkins.$external_ip_for_url.nip.io (if Ingress was successful)"
         log_info "Access Jenkins at: https://jenkins.tuan-lnm.org (if Ingress was successful)"
     else
@@ -234,7 +234,7 @@ print_service_passwords() {
   if [[ -n "$grafana_password" ]]; then
     log_info "Grafana Admin User: admin"
     log_info "Grafana Admin Password: $grafana_password"
-    if [[ -n "$external_ip_for_url" ]]; then
+   if [ "$ENVIRONMENT" == "prod" ]; then
         log_info "Access Grafana at: https://grafana.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
@@ -266,7 +266,7 @@ print_service_passwords() {
   if [[ -n "$es_password" ]]; then
     log_info "Elasticsearch User: elastic"
     log_info "Elasticsearch Password: $es_password"
-    if [[ -n "$external_ip_for_url" ]]; then
+    if [ "$ENVIRONMENT" == "prod" ]; then
         log_info "Access Kibana at: https://kibana.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl port-forward svc/kibana-kibana -n logging 5601:5601"
@@ -290,7 +290,7 @@ print_service_passwords() {
   if [[ -n "$argocd_password" ]]; then
     log_info "ArgoCD User: admin"
     log_info "ArgoCD Password: $argocd_password"
-    if [[ -n "$external_ip_for_url" ]]; then
+    if [ "$ENVIRONMENT" == "prod" ]; then
         log_info "Access ArgoCD at: https://argocd.tuan-lnm.org (if Ingress was successful)"
     else
         log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
@@ -387,21 +387,22 @@ echo >&2 # Blank line to stderr for readability
 apply_argocd_kubernetes_manifests
 echo >&2 # Blank line to stderr for readability
 
-INGRESS_EXTERNAL_IP=""
+# INGRESS_EXTERNAL_IP=""
 
-set +e
-if [ "$ENVIRONMENT" == "prod" ]; then
-  INGRESS_EXTERNAL_IP=$(get_ingress_external_ip)
-  GET_IP_STATUS=$?
-  if [ $GET_IP_STATUS -ne 0 ] || [ -z "$INGRESS_EXTERNAL_IP" ]; then
-    log_error "Could not obtain Ingress External IP. Some functionalities in base manifests (like ingress rules) might not work correctly."
-    # INGRESS_EXTERNAL_IP will be empty, apply_base_kubernetes_manifests will skip ingress part
-  fi
-  echo >&2 # Blank line to stderr for readability
-fi
-set -e
+# set +e
+# if [ "$ENVIRONMENT" == "prod" ]; then
+#   INGRESS_EXTERNAL_IP=$(get_ingress_external_ip)
+#   GET_IP_STATUS=$?
+#   if [ $GET_IP_STATUS -ne 0 ] || [ -z "$INGRESS_EXTERNAL_IP" ]; then
+#     log_error "Could not obtain Ingress External IP. Some functionalities in base manifests (like ingress rules) might not work correctly."
+#     # INGRESS_EXTERNAL_IP will be empty, apply_base_kubernetes_manifests will skip ingress part
+#   fi
+#   echo >&2 # Blank line to stderr for readability
+# fi
+# set -e
 
 # Print service passwords at the end
-print_service_passwords "$INGRESS_EXTERNAL_IP"
+# print_service_passwords "$INGRESS_EXTERNAL_IP"
+print_service_passwords
 
 log_info "$ENVIRONMENT deployment process completed! 🚀"
