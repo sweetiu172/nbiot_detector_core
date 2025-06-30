@@ -170,10 +170,9 @@ apply_argocd_kubernetes_manifests() {
         kubectl apply -f "$manifest_file"
 
         # If the manifest we JUST applied was for Elasticsearch, wait for it to initialize
-        if kubectl wait --for=condition=ready pod -l app=elasticsearch-master -n logging --timeout=300s; then
-          log_info "Elasticsearch is ready."
-        else
-          log_warning "Elasticsearch did not become ready within 5 minutes."
+        if [ "$filename" == "elasticsearch.yaml" ]; then
+          log_info "Waiting 5 minutes for Elasticsearch to initialize after applying..."
+          sleep 300
         fi
       fi
     done
@@ -372,6 +371,7 @@ log_info "Namespace creation step complete."
 echo >&2 # Blank line to stderr for readability
 
 log_info "Starting Helm chart deployments based on defined mapping..."
+deploy_chart "kube-prometheus-stack" "monitoring"
 deploy_chart "argo-cd" "argocd"
 deploy_chart "cloudflare-tunnel-remote" "cloudflared"
 log_info "Helm chart deployment process complete."
