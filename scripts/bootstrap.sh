@@ -371,6 +371,7 @@ log_info "Namespace creation step complete."
 echo >&2 # Blank line to stderr for readability
 
 log_info "Starting Helm chart deployments based on defined mapping..."
+deploy_chart "ingress-nginx" "ingress-nginx"
 deploy_chart "kube-prometheus-stack" "monitoring"
 deploy_chart "argo-cd" "argocd"
 deploy_chart "cloudflare-tunnel-remote" "cloudflared"

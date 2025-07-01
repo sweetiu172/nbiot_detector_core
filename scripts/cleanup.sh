@@ -15,13 +15,10 @@ K8S_NAMESPACES_TO_DELETE=("ingress-nginx" "jenkins" "monitoring" "logging" "trac
 # Mapping of namespaces to Helm releases.
 # Release names should match those used in deploy.sh (typically chart directory names)
 declare -A HELM_RELEASES_MAP
-HELM_RELEASES_MAP["ingress-nginx"]="ingress-nginx"
-HELM_RELEASES_MAP["jenkins"]="jenkins"
 HELM_RELEASES_MAP["monitoring"]="kube-prometheus-stack"
-HELM_RELEASES_MAP["logging"]="kibana elasticsearch filebeat"
-HELM_RELEASES_MAP["tracing"]="jaeger-all-in-one"
-HELM_RELEASES_MAP["argocd"]="argo-cd"
-HELM_RELEASES_MAP["nbiot-detector"]="app-nbiot-detector"
+\HELM_RELEASES_MAP["argocd"]="argo-cd"
+\HELM_RELEASES_MAP["cloudflared"]="cloudflare-remote-tunnel"
+
 
 # --- Helper Functions ---
 log_info() {

@@ -88,9 +88,9 @@ extraEnvs:
 - name: OTEL_SERVICE_NAME
   value: nbiot-detector-api
 - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-  value: http://jaeger-all-in-one.tracing:4318/v1/traces
+  value: http://jaeger-jaeger-all-in-one.tracing:4318/v1/traces
 - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
-  value: http://jaeger-all-in-one.tracing:4318/v1/logs
+  value: http://jaeger-jaeger-all-in-one.tracing:4318/v1/logs
 
 #  - name: MY_ENVIRONMENT_VAR
 #    value: the_value_goes_here
