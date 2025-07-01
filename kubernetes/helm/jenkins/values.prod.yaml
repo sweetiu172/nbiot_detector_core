@@ -167,10 +167,10 @@ controller:
   # or `http://` depending on the `tls` configuration.
   # The Protocol can be overwritten by specifying `controller.jenkinsUrlProtocol`.
   # -- Set protocol for Jenkins URL; `https` if `controller.ingress.tls`, `http` otherwise
-  jenkinsUrlProtocol:
+  jenkinsUrlProtocol: "https"
 
   # -- Set Jenkins URL if you are not using the ingress definitions provided by the chart
-  jenkinsUrl:
+  jenkinsUrl: "https://jenkins.tuan-lnm.org"
 
   # If you set this prefix and use ingress controller, then you might want to set the ingress path below
   # I.e., "/jenkins"
