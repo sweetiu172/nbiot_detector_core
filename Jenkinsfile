@@ -27,7 +27,7 @@ pipeline {
     }
 
     stages {
-        stage('Test') {
+        stage('Unit Test') {
             when {
                 anyOf {
                     changeset "app/**"
