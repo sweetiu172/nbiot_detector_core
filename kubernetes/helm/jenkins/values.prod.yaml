@@ -158,10 +158,11 @@ controller:
 
   # Set min/max heap here if needed with "-Xms512m -Xmx512m"
   # -- Append to `JAVA_OPTS` env var
+  # This part is CORRECT and makes Jenkins aware of the proxy
   javaOpts: "-Djenkins.hudson.jetty.forward.ForwardedRequestCustomizer.enabled=true"
 
-  # Keep these options to manage the ports correctly
-  jenkinsOpts: "--httpPort=-1 --httpsPort=8080"
+  # This sets the listener to a plain HTTP port, which is what we want
+  jenkinsOpts: "--httpPort=8080"
 
 
   # If you are using the ingress definitions provided by this chart via the `controller.ingress` block,
