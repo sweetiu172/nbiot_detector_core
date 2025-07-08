@@ -125,6 +125,7 @@ apply_base_kubernetes_manifests() {
 
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
   local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
+  local jenkins_ssh_sa="$K8S_BASE_MANIFESTS_DIR/jenkins-rbac-ssh.yaml"
   local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/cloudflare-ingress.yaml"
 
   if [ -f "$jenkins_volume_file" ]; then
@@ -146,6 +147,13 @@ apply_base_kubernetes_manifests() {
     kubectl apply -f "$ingress_template_file"
   else
     log_warning "$jenkins_volume_file not found. Skipping."
+  fi
+
+  if [ -f "$jenkins_ssh_sa" ]; then
+    log_info "Applying $jenkins_ssh_sa"
+    kubectl apply -f "$jenkins_ssh_sa"
+  else
+    log_warning "$jenkins_ssh_sa not found. Skipping."
   fi
 
   log_info "Base Kubernetes manifests application process complete."
