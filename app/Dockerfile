@@ -22,7 +22,7 @@ COPY ./requirements.txt /opt/venv_builder/requirements.txt
 # Install Python dependencies into the virtual environment
 # Use --no-cache-dir to reduce layer size.
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+    pip install --no-cache-dir torch==2.7.0 --index-url https://download.pytorch.org/whl/cpu
 
 # ---- Stage 2: Runtime ----
 FROM python:3.12-slim AS runtime
