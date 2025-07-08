@@ -158,9 +158,10 @@ controller:
 
   # Set min/max heap here if needed with "-Xms512m -Xmx512m"
   # -- Append to `JAVA_OPTS` env var
-  javaOpts:
-  # -- Append to `JENKINS_OPTS` env var
-  jenkinsOpts: "--httpPort=-1 --httpsPort=8080 --forwardedHeadersFilter=X-Forwarded-Proto,X-Forwarded-Host"
+  javaOpts: "-Djenkins.hudson.jetty.forward.ForwardedRequestCustomizer.enabled=true"
+
+  # Keep these options to manage the ports correctly
+  jenkinsOpts: "--httpPort=-1 --httpsPort=8080"
 
   # If you are using the ingress definitions provided by this chart via the `controller.ingress` block,
   # the configured hostname will be the ingress hostname starting with `https://`
