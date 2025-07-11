@@ -179,8 +179,8 @@ apply_argocd_kubernetes_manifests() {
 
         # If the manifest we JUST applied was for Elasticsearch, wait for it to initialize
         if [ "$filename" == "elasticsearch.yaml" ]; then
-          log_info "Waiting 5 minutes for Elasticsearch to initialize after applying..."
-          sleep 300
+          log_info "Waiting 10 minutes for Elasticsearch to initialize after applying..."
+          sleep 600
         fi
       fi
     done
@@ -265,6 +265,7 @@ print_service_passwords() {
 
   # Try official chart secret pattern
   es_password=$(kubectl get secret "$es_secret_name_official" -n "$es_namespace" -o jsonpath='{.data.elastic}' 2>/dev/null | base64 --decode 2>/dev/null || echo "")
+  # kubectl get secret elasticsearch-master-credentials -n logging -o jsonpath='{.data.elastic}' 2>/dev/null | base64 --decode
 
   # If not found, try Bitnami chart secret pattern
   if [[ -z "$es_password" ]]; then

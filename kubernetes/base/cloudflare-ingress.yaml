@@ -24,17 +24,21 @@ metadata:
   namespace: jenkins
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - jenkins.tuan-lnm.org
+    secretName: jenkins-tls 
   rules:
-    - host: jenkins.tuan-lnm.org # FIX HERE
-      http:
-        paths:
-          - pathType: Prefix
-            backend:
-              service:
-                name: jenkins
-                port:
-                  number: 8080
-            path: /
+  - host: jenkins.tuan-lnm.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins
+            port:
+              number: 8080
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
