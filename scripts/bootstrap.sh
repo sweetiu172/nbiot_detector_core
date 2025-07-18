@@ -179,8 +179,8 @@ apply_argocd_kubernetes_manifests() {
 
         # If the manifest we JUST applied was for Elasticsearch, wait for it to initialize
         if [ "$filename" == "elasticsearch.yaml" ]; then
-          log_info "Waiting 10 minutes for Elasticsearch to initialize after applying..."
-          sleep 600
+          log_info "Waiting 6 minutes for Elasticsearch to initialize after applying..."
+          sleep 360
         fi
       fi
     done
