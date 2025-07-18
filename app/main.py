@@ -173,7 +173,17 @@ async def predict_batch(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
-        df = pd.read_csv(io.BytesIO(contents), header=None)
+        
+        # Specific handling for CSV parsing errors
+        try:
+            df = pd.read_csv(io.BytesIO(contents), header=None)
+        except pd.errors.EmptyDataError:
+            logger.warning("Attempted to process an empty CSV for batch prediction.")
+            raise HTTPException(status_code=400, detail="CSV file is empty or contains no data rows.")
+        except pd.errors.ParserError as pe:
+            logger.warning(f"CSV parsing error for batch: {str(pe)}")
+            raise HTTPException(status_code=400, detail="Error parsing CSV file. Ensure it's valid CSV with numerical data and no header.")
+
         current_span.set_attribute("batch.row_count", len(df))
 
         if df.shape[1] != len(feature_list):
@@ -185,13 +195,12 @@ async def predict_batch(file: UploadFile = File(...)):
         
         scaled_features = scaler.transform(features_np)
         
-        # Predict probabilities for the entire batch at once
         probabilities_batch = lgbm_model.predict_proba(scaled_features)
         
         predictions = []
-        threshold = 0.5  # Adjust this threshold based on your precision/recall needs
+        threshold = 0.5
         for prob in probabilities_batch:
-            prob_attack = prob[1] # Probability of class 1 ('attack')
+            prob_attack = prob[1]
             label = 1 if prob_attack > threshold else 0
             status = "Attack" if label == 1 else "Benign"
             predictions.append(
@@ -199,8 +208,12 @@ async def predict_batch(file: UploadFile = File(...)):
             )
         return predictions
 
+    except HTTPException as http_exc:
+        # If we raised a specific HTTPException (like a 400), let it pass through
+        raise http_exc
     except Exception as e:
+        # Catch any other unexpected errors and return a 500
         logger.error("Error during batch prediction", exc_info=True)
         current_span.record_exception(e)
-        current_span.set_status(Status(StatusCode.ERROR, "Error processing batch file"))
-        raise HTTPException(status_code=500, detail="An unexpected error occurred while processing the batch file.")
+        current_span.set_status(Status(StatusCode.ERROR, "Unexpected error processing batch file"))
+        raise HTTPException(status_code=500, detail="An unexpected server error occurred while processing the batch file.")
