@@ -8,12 +8,11 @@ import torch.nn as nn
 # HIDDEN_SIZE_2 = 128 (passed during instantiation)
 # OUTPUT_SIZE = 1 (passed during instantiation)
 # DROPOUT_RATE = 0.4 (passed during instantiation)
-
 class MLPDetector(nn.Module):
     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size, dropout_rate):
         super(MLPDetector, self).__init__()
-        # Using nn.Sequential for a slightly cleaner look
-        self.fc_stack = nn.Sequential(
+        # The main sequential block MUST be named 'network' to match the saved file
+        self.network = nn.Sequential(
             nn.Linear(input_size, hidden_size_1),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
@@ -24,5 +23,21 @@ class MLPDetector(nn.Module):
         )
 
     def forward(self, x):
-        x = self.fc_stack(x)
-        return x
+        return self.network(x)
+# class MLPDetector(nn.Module):
+#     def __init__(self, input_size, hidden_size_1, hidden_size_2, output_size, dropout_rate):
+#         super(MLPDetector, self).__init__()
+#         # Using nn.Sequential for a slightly cleaner look
+#         self.fc_stack = nn.Sequential(
+#             nn.Linear(input_size, hidden_size_1),
+#             nn.ReLU(),
+#             nn.Dropout(dropout_rate),
+#             nn.Linear(hidden_size_1, hidden_size_2),
+#             nn.ReLU(),
+#             nn.Dropout(dropout_rate),
+#             nn.Linear(hidden_size_2, output_size)
+#         )
+
+#     def forward(self, x):
+#         x = self.fc_stack(x)
+#         return x

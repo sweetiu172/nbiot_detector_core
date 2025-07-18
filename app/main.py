@@ -41,7 +41,7 @@ DROPOUT_RATE = 0.4
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "saved_assets", "best_nbiot_detector.pth")
-SCALER_PATH = os.path.join(BASE_DIR, "saved_assets", "nbiot_multi_device_scaler.gz")
+SCALER_PATH = os.path.join(BASE_DIR, "saved_assets", "nbiot_scaler.gz")
 
 # OTEL Configuration
 OTEL_SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "nbiot-detector-api")
@@ -229,10 +229,11 @@ def predict_single_instance(data: NetworkFeaturesInput):
         features_tensor = preprocess_single(data.features)
         
         # Call helper function for inference (this will create its own span)
+        
         inference_result = run_single_inference(features_tensor)
         probability_attack = inference_result["probability_attack"]
             
-        prediction_label = 1 if probability_attack > 0.5 else 0
+        prediction_label = 1 if probability_attack > 0.87 else 0
         status_message = "Attack" if prediction_label == 1 else "Benign"
         current_endpoint_span.set_attribute("prediction_status", status_message)
         logger.info(f"Single prediction successful: {status_message}, probability_attack: {probability_attack:.4f}")
@@ -322,7 +323,7 @@ async def predict_batch_from_csv(file: UploadFile = File(..., description="CSV f
 
             for i in range(len(probabilities_attack_batch)):
                 prob_attack = probabilities_attack_batch[i].item()
-                label = 1 if prob_attack > 0.5 else 0
+                label = 1 if prob_attack > 0.87 else 0
                 status = "Attack" if label == 1 else "Benign"
                 predictions_list.append(PredictionResponse(
                     prediction_label=label, status=status, probability_attack=prob_attack
