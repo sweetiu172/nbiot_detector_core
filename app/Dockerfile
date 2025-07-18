@@ -29,6 +29,13 @@ FROM python:3.12-slim AS runtime
 
 LABEL stage="runtime"
 
+# --- FIX: Install the missing system dependency for LightGBM ---
+# This library is required for multi-threading on CPU
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
