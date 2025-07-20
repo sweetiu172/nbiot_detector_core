@@ -106,8 +106,6 @@ Before you begin, ensure you have the following command-line tools installed and
 * **`terraform`** (For Production): To provision the cloud infrastructure.
 * **`minikube`** (For Local): To run a local Kubernetes cluster.
 
-```
-
 ### 2. Initial Setup
 
 First, clone the repository to your local machine.
