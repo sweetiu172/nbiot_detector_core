@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: example@gmail.com # Replace with your email
+    privateKeySecretRef:
+      name: letsencrypt-prod-private-key
+    solvers:
+    - dns01:
+        cloudDNS:
+          project: nbiot-detector # Replace with your GCP project ID
+          serviceAccountSecretRef:
+            name: clouddns-sa-key
+            key: key.json

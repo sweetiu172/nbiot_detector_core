@@ -10,6 +10,8 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
+from sklearn.preprocessing import RobustScaler
+import lightgbm
 
 # --- OpenTelemetry Imports ---
 from opentelemetry import trace
@@ -43,8 +45,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(nam
 logger = logging.getLogger(__name__)
 
 # --- Global Variables ---
-lgbm_model = None
-scaler = None
+lgbm_model: lightgbm = None
+scaler: RobustScaler = None
 feature_list: List[str] = None
 tracer: trace.Tracer = None
 otel_sdk_logger_provider: OtelSDKLoggerProvider = None

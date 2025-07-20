@@ -20,7 +20,7 @@ pipeline {
         kubernetesNamespace = 'default'
 
         appConfigRepo = 'git@github.com:sweetiu172/nbiot_detector_core.git'
-        appConfigBranch = 'feat/init-project'
+        appConfigBranch = 'main'
 
         gitCommit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
         dockerTag = "${env.BUILD_NUMBER}-${gitCommit}"
@@ -51,7 +51,7 @@ pipeline {
                     pip install --no-cache-dir -r requirements.txt
                     echo "Running tests"
                     cd ..
-                    pytest
+                    pytest --cov-fail-under=80
                     echo "Deactivating virtual environment"
                     deactivate
                 '''
@@ -90,9 +90,12 @@ pipeline {
         }
         stage('Update value in helm-chart') {
             when {
-                anyOf {
-                    changeset "app/**"
-                    changeset "Jenkinsfile"
+                allOf {
+                    branch "${env.appConfigBranch}"
+                    anyOf {
+                        changeset "app/**"
+                        changeset "Jenkinsfile"
+                    }
                 }
             }
             agent {

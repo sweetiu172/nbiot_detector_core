@@ -3,10 +3,18 @@ kind: Ingress
 metadata:
   name: app-google-dns
   namespace: nbiot-detector
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - app.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-app 
   rules:
-    - host: app.tuan-lnm.cloud # FIX HERE
+    - host: app.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix
@@ -22,10 +30,18 @@ kind: Ingress
 metadata:
   name: jenkins-google-dns
   namespace: jenkins
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - jenkins.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-jenkins 
   rules:
-    - host: jenkins.tuan-lnm.cloud # FIX HERE
+    - host: jenkins.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix
@@ -41,10 +57,18 @@ kind: Ingress
 metadata:
   name: grafana-google-dns
   namespace: monitoring
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - grafana.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-grafana 
   rules:
-    - host: grafana.tuan-lnm.cloud # FIX HERE
+    - host: grafana.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix
@@ -60,10 +84,18 @@ kind: Ingress
 metadata:
   name: jaeger-google-dns
   namespace: tracing
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - jaeger.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-jaeger 
   rules:
-    - host: jaeger.tuan-lnm.cloud # FIX HERE
+    - host: jaeger.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix
@@ -79,10 +111,18 @@ kind: Ingress
 metadata:
   name: kibana-google-dns
   namespace: logging
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - kibana.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-jaeger 
   rules:
-    - host: kibana.tuan-lnm.cloud # FIX HERE
+    - host: kibana.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix
@@ -98,10 +138,18 @@ kind: Ingress
 metadata:
   name: argocd-google-dns
   namespace: argocd
+  annotations:
+    # Use cert-manager to issue the certificate for this Ingress
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - argocd.tuan-lnm.cloud # 👈 Replace with your domain
+    # cert-manager will store the certificate in this secret
+    secretName: tls-secret-for-argocd 
   rules:
-    - host: argocd.tuan-lnm.cloud # FIX HERE
+    - host: argocd.tuan-lnm.cloud # 👈 Replace with your domain
       http:
         paths:
           - pathType: Prefix

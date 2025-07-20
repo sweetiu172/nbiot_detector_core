@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: 'https://github.com/sweetiu172/nbiot_detector_core.git'
-    targetRevision: feat/init-project
+    targetRevision: main
     path: './kubernetes/helm/app-nbiot-detector'
   destination:
     server: 'https://kubernetes.default.svc'
