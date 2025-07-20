@@ -2,7 +2,7 @@
 
 # Cloudflare parameters.
 cloudflare:
-  tunnel_token: "" # ADD HERE
+  tunnel_token: "eyJhIjoiYTBlZDJjYzBjOTE1NmMxMTEzMWI0NzgyYjQzYWM0NWMiLCJ0IjoiOTZhYmE5MjAtZDIwYi00ODlkLWE3ZjktNWQ2ZTJiMmRjNmJhIiwicyI6Ik1tVTJNR05tTkRZdE1qQXlPUzAwWVRNMkxXSTBObUl0WmpCa05UQmpORGd6WldabCJ9" # ADD HERE
 
 image:
   repository: cloudflare/cloudflared

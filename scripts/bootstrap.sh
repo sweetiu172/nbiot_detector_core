@@ -126,7 +126,6 @@ apply_base_kubernetes_manifests() {
   local jenkins_volume_file="$K8S_BASE_MANIFESTS_DIR/jenkins-01-volume.yaml"
   local jenkins_role_binding_file="$K8S_BASE_MANIFESTS_DIR/jenkins-sa-rbac.yaml"
   local jenkins_ssh_sa="$K8S_BASE_MANIFESTS_DIR/jenkins-rbac-ssh.yaml"
-  local ingress_template_file="$K8S_BASE_MANIFESTS_DIR/cloudflare-ingress.yaml"
 
   if [ -f "$jenkins_volume_file" ]; then
     log_info "Applying $jenkins_volume_file to 'jenkins' namespace..."
@@ -140,13 +139,6 @@ apply_base_kubernetes_manifests() {
     kubectl apply -f "$jenkins_role_binding_file"
   else
     log_warning "$jenkins_role_binding_file not found. Skipping."
-  fi
-
-  if [ -f "$ingress_template_file" ]; then
-    log_info "Applying $ingress_template_file"
-    kubectl apply -f "$ingress_template_file"
-  else
-    log_warning "$jenkins_volume_file not found. Skipping."
   fi
 
   if [ -f "$jenkins_ssh_sa" ]; then
@@ -196,15 +188,8 @@ apply_argocd_kubernetes_manifests() {
 print_service_passwords() {
   log_info "--- Default Service Credentials (Passwords are typically stored in Kubernetes Secrets) ---"
   # local external_ip_for_url="${1:-}" # Pass INGRESS_EXTERNAL_IP if available for URLs
-  if [ "$ENVIRONMENT" == "prod" ]; then
-      # log_info "Access App Nbiot Detector at: http://app.$external_ip_for_url.nip.io (if Ingress was successful)"
-      # log_info "Access Jaeger UI at: http://jaeger.$external_ip_for_url.nip.io (if Ingress was successful)"
-      log_info "Access App Nbiot Detector at: https://app.tuan-lnm.org (if Ingress was successful)"
-      log_info "Access Jaeger UI at: https://jaeger.tuan-lnm.org (if Ingress was successful)"
-  else
-      log_info "Run at local: kubectl --namespace nbiot-detector port-forward svc/app-nbiot-detector 8000:8000"
-      log_info "Run at local: kubectl --namespace tracing port-forward svc/jaeger-all-in-one 16686:16686"
-  fi
+  log_info "Run at local: kubectl --namespace nbiot-detector port-forward svc/app-nbiot-detector 8000:8000"
+  log_info "Run at local: kubectl --namespace tracing port-forward svc/jaeger-all-in-one 16686:16686"
   echo >&2
   # Jenkins
   local jenkins_release_name="jenkins"
@@ -220,12 +205,7 @@ print_service_passwords() {
   if [[ -n "$jenkins_password" ]]; then
     log_info "Jenkins Admin User: $jenkins_username"
     log_info "Jenkins Admin Password: $jenkins_password"
-    if [ "$ENVIRONMENT" == "prod" ]; then
-        # log_info "Access Jenkins at: http://jenkins.$external_ip_for_url.nip.io (if Ingress was successful)"
-        log_info "Access Jenkins at: https://jenkins.tuan-lnm.org (if Ingress was successful)"
-    else
-        log_info "Run at local: kubectl --namespace jenkins port-forward svc/jenkins 8080:8080"
-    fi
+    log_info "Run at local: kubectl --namespace jenkins port-forward svc/jenkins 8080:8080"
   else
     log_warning "Could not retrieve Jenkins admin password from secret '$jenkins_secret_name'."
     log_info "  Check Jenkins chart (values.yaml or notes) for how admin password is set or retrieved."
@@ -242,11 +222,7 @@ print_service_passwords() {
   if [[ -n "$grafana_password" ]]; then
     log_info "Grafana Admin User: admin"
     log_info "Grafana Admin Password: $grafana_password"
-   if [ "$ENVIRONMENT" == "prod" ]; then
-        log_info "Access Grafana at: https://grafana.tuan-lnm.org (if Ingress was successful)"
-    else
-        log_info "Run at local: kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
-    fi
+    log_info "Run at local: kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
     # If you have an Ingress for Grafana similar to Jenkins, you can add its URL too.
   else
     log_warning "Could not retrieve Grafana admin password from secret '$grafana_secret_name'."
@@ -275,11 +251,7 @@ print_service_passwords() {
   if [[ -n "$es_password" ]]; then
     log_info "Elasticsearch User: elastic"
     log_info "Elasticsearch Password: $es_password"
-    if [ "$ENVIRONMENT" == "prod" ]; then
-        log_info "Access Kibana at: https://kibana.tuan-lnm.org (if Ingress was successful)"
-    else
-        log_info "Run at local: kubectl port-forward svc/kibana-kibana -n logging 5601:5601"
-    fi
+    log_info "Run at local: kubectl port-forward svc/kibana-kibana -n logging 5601:5601"
   else
     log_warning "Could not retrieve Elasticsearch 'elastic' user password."
     log_info "  Tried secrets like '$es_secret_name_official' (key: elastic) and '$es_secret_name_bitnami' (key: password)."
@@ -299,11 +271,7 @@ print_service_passwords() {
   if [[ -n "$argocd_password" ]]; then
     log_info "ArgoCD User: admin"
     log_info "ArgoCD Password: $argocd_password"
-    if [ "$ENVIRONMENT" == "prod" ]; then
-        log_info "Access ArgoCD at: https://argocd.tuan-lnm.org (if Ingress was successful)"
-    else
-        log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
-    fi
+    log_info "Run at local: kubectl port-forward service/argo-cd-server -n argocd 8080:80"
   else
     log_warning "Could not retrieve ArgoCD 'admin' user password."
   fi
@@ -380,10 +348,10 @@ log_info "Namespace creation step complete."
 echo >&2 # Blank line to stderr for readability
 
 log_info "Starting Helm chart deployments based on defined mapping..."
-deploy_chart "ingress-nginx" "ingress-nginx"
+# deploy_chart "ingress-nginx" "ingress-nginx"
 deploy_chart "kube-prometheus-stack" "monitoring"
 deploy_chart "argo-cd" "argocd"
-deploy_chart "cloudflare-tunnel-remote" "cloudflared"
+# deploy_chart "cloudflare-tunnel-remote" "cloudflared"
 log_info "Helm chart deployment process complete."
 echo >&2 # Blank line to stderr for readability
 

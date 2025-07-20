@@ -113,5 +113,5 @@ spec:
               service:
                 name: argo-cd-server
                 port:
-                  number: 443
+                  number: 80
             path: /
