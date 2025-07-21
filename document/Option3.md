@@ -110,5 +110,5 @@ ingress.networking.k8s.io/kibana created
 ingress.networking.k8s.io/argocd created
 ```
 
-**Step 5: Apply the Cloudflare Ingress Resource**
+**Step 5: Verify SSL/TLS certificate**
 <img src="../images/cloudflare-cert.png" width=100% height=100%>

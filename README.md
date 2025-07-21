@@ -194,8 +194,10 @@ This method simplifies the architecture and enhances security by using a Cloudfl
 
 **Step 1:** Create docker access token
 1. **Login to Docker Hub**
+
 2. `Account settings` > `Personal access tokens` > `Generate new token` (with Read & Write scope)
 <img src="./images/create-docker-access-token.png" width=100% height=100%>
+
 3. **Keep your token handy**
 
 **Step 2:** Create github webhook
