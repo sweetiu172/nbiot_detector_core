@@ -192,13 +192,13 @@ This method simplifies the architecture and enhances security by using a Cloudfl
 
 ***Notice:*** I will assume that you have a docker hub account and have your own docker's repositories
 
-**Step1:** Create docker access token
+**Step 1:** Create docker access token
 1. **Login to Docker Hub**
 2. `Account settings` > `Personal access tokens` > `Generate new token` (with Read & Write scope)
 <img src="./images/create-docker-access-token.png" width=100% height=100%>
 3. **Keep your token handy**
 
-**Step2:** Create github webhook
+**Step 2:** Create github webhook
 1. Go to the GitHub repository and click on `Settings`
 2. Click on `Webhooks` and then select `Add Webhook`
 3. Enter URL of your Jenkins server (https://jenkins.tuan-lnm.cloud/multibranch-webhook-trigger/invoke?token=demo-token)
@@ -209,7 +209,7 @@ This method simplifies the architecture and enhances security by using a Cloudfl
 4. Webhook's status should be `green`
 <img src="./images/webhook-status.png" width=100% height=100%>
 
-**Step3**: Setup github access token
+**Step 3**: Setup github access token
 1. Create your own ssh key
 ```bash
 ssh-keygen -t rsa -b 4096 -C "jenkins@k8s" -f id_rsa_jenkins -N ""
@@ -224,7 +224,7 @@ kubectl create secret generic github-ssh-key --namespace=jenkins --type=kubernet
 --from-file=ssh-privatekey=./id_rsa_jenkins
 ```
 
-**Step4**: Setup CI Pipeline
+**Step 4**: Setup CI Pipeline
 1. Go to `Jenkins` dashboard and click on `New Item`
 2. Name your project (eg. `nbiot-detector`) and select `Multibranch Pipeline`
 3. Click on `Branch Sources` and then click on `Add Source`. Select `GitHub` and click on `Add`. Enter the URL of your GitHub repository.
