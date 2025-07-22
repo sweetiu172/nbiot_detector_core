@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-ssh-sa
+  namespace: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-ssh-key-reader
+  namespace: jenkins
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  # Grant access ONLY to this specific secret
+  resourceNames: ["github-ssh-key"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-sa-ssh-key-reader
+  namespace: jenkins
+subjects:
+- kind: ServiceAccount
+  name: jenkins-ssh-sa
+roleRef:
+  kind: Role
+  name: jenkins-ssh-key-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: github-ssh-key
+#   namespace: jenkins
+# type: Opaque
+# data:
+#   id_rsa: <BASE64_ENCODED_PRIVATE_KEY>
+
+## MUST CREATE A SECRET
+# kubectl create secret generic github-ssh-key \
+#   --from-file=id_rsa=id_rsa_jenkins \
+#   --namespace=jenkins

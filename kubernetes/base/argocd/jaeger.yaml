@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jaeger
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/sweetiu172/nbiot_detector_core.git'
+    targetRevision: main
+    path: './kubernetes/helm/jaeger-all-in-one'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: tracing
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-agent-sa
+  namespace: jenkins # Service Account is in the 'jenkins' namespace
+---
+# jenkins-helm-role.yaml - Defines permissions in the 'default' namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default # Permissions are granted IN THIS NAMESPACE
+  name: jenkins-helm-deployer
+rules:
+  # Rule for Helm 3 release metadata (primarily uses Secrets)
+- apiGroups: [""] # Core API group
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Rules for common application resources managed by Helm charts
+- apiGroups: [""] # Core API group
+  resources:
+    - "pods"
+    - "services"
+    - "configmaps"
+    - "persistentvolumeclaims"
+    - "serviceaccounts" # If your chart creates specific SAs for the app
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["apps"]
+  resources:
+    - "deployments"
+    - "statefulsets"
+    - "daemonsets"
+    - "replicasets"
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+- apiGroups: ["networking.k8s.io"] # For modern Ingress, NetworkPolicies
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+# If your chart uses older 'extensions' API group for ingresses, you might add:
+# - apiGroups: ["extensions"]
+#   resources: ["ingresses"]
+#   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+---
+# jenkins-helm-rolebinding.yaml - Binds the Role to your Jenkins agent's ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-helm-deployer-binding
+  namespace: default # This binding applies IN THIS NAMESPACE
+subjects:
+- kind: ServiceAccount
+  name: jenkins-agent-sa # Subject is the ServiceAccount defined above
+  namespace: jenkins     # Namespace where the 'jenkins-agent-sa' ServiceAccount exists
+roleRef:
+  kind: Role
+  name: jenkins-helm-deployer # Granting the permissions from this Role
+  apiGroup: rbac.authorization.k8s.io

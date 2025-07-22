@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.env
+.venv/
+venv/
+env/
+*.env
+*.tfstate
+*.tfstate.*
+.terraform
+data/
+*.zip

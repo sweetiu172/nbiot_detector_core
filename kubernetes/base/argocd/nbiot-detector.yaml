@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nbiot-detector
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/sweetiu172/nbiot_detector_core.git'
+    targetRevision: main
+    path: './kubernetes/helm/app-nbiot-detector'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: nbiot-detector
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

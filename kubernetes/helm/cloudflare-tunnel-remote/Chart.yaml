@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: latest
+description: Deployment of a remotely managed tunnel that has already been provisioned
+  in Cloudflare
+icon: https://developers.cloudflare.com/cloudflare-one/favicon-32x32.png
+name: cloudflare-tunnel-remote
+type: application
+version: 0.1.2
